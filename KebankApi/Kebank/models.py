@@ -4,7 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth import get_user_model
 
 class UserManager(BaseUserManager):
-    def create_user(self,first_name, surname,username, email, password=None):
+    def create_user(self,first_name, surname, username, email, password=None):
         if not email:
             raise ValueError("Put an email address")
         if not username:
@@ -12,10 +12,11 @@ class UserManager(BaseUserManager):
         
         user = self.model(
             email = email,
-            username = user,
+            username = username,
             first_name = first_name,
             surname = surname,
         )
+        
         user.set_password(password)
         user.save(using=self.db)
         
@@ -29,7 +30,7 @@ class UserManager(BaseUserManager):
         
         user = self.create_user(
             email = self.normalize_email(email=email),
-            username = user,
+            username = username,
             password=password,
             first_name = first_name,
             surname = surname,
@@ -48,22 +49,32 @@ class User(AbstractBaseUser):
     
     first_name = models.CharField(max_length=100, blank=False)
     surname = models.CharField(max_length=100,  blank=False)
-    username = models.CharField(max_length=30, unique=True,  blank=False)
+    username = models.CharField(max_length=30, unique=True,  blank=True)
     email = models.EmailField(max_length=100, unique=True, blank=False)
     phone_number = models.CharField(max_length=11, blank=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    
+    is_staff = models.BooleanField(default=False)
+    is_admin =  models.BooleanField(default=False)
+    is_active =  models.BooleanField(default=False)
+    is_staff=  models.BooleanField(default=False)
+    is_superadmin = models.BooleanField(default=False)
     objects = UserManager()
     
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = [ "first_name", "surname", "email"]
     
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
         
+    def has_perm(self, perm, obj=None):
+        return self.is_admin
+    
+    def has_module_perms(self, app_label):
+        return True
+    
         
 class LegalPerson(models.Model):
     legal_person = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="legal_person_User")
