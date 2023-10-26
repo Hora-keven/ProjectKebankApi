@@ -77,37 +77,35 @@ class User(AbstractBaseUser):
     
         
 class LegalPerson(models.Model):
-    legal_person = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="legal_person_User")
+    legal_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
     born_date = models.CharField(max_length=10, blank=False)
     cpf = models.CharField(max_length=11, blank=False, primary_key=True)
     rg = models.CharField(max_length=9, blank=False)
     
     def save(self, *args, **kwargs):
-        super(User, self).save(*args, **kwargs)
+        super(LegalPerson, self).save(*args, **kwargs)
     
 
 class JuridicPerson(models.Model):
-    juridic_person = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="juridic_person_User")
+    juridic_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="juridic_person_User")
     state_registration = models.CharField(max_length=11)
     open_date = models.CharField(max_length=10, blank=False)
     cnpj = models.CharField(max_length=14, primary_key=True)
     
     def save(self, *args, **kwargs):
-        super(User, self).save(*args, **kwargs)
+        super(JuridicPerson, self).save(*args, **kwargs)
         
         
 class Account(models.Model):
-    agency = models.IntegerField()
-    number = models.IntegerField()
-    number_verificate = models.IntegerField()
+    agency = models.IntegerField(blank=True)
+    number = models.IntegerField(blank=True)
+    number_verificate = models.IntegerField(blank=True)
     type_account = models.CharField(max_length=20)
-    limit = models.IntegerField()
-    active = models.BooleanField()
-    legal_person = models.ForeignKey(LegalPerson, on_delete=models.CASCADE)
-    juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE)
+    limit = models.DecimalField(max_digits=10, decimal_places=2 )
+    active = models.BooleanField(default=True)
+    legal_person = models.ForeignKey(LegalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_LegalPerson")
+    juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_JuridicPerson")
     
     def save(self, *args, **kwargs):
-        if self.legal_person != None:
-            super(LegalPerson, self).save(*args, **kwargs)
-        else:
-            super(JuridicPerson, self).save(*args, **kwargs)
+        super(Account, self).save(*args, **kwargs)
+ 
