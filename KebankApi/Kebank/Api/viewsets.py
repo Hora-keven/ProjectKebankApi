@@ -14,3 +14,15 @@ class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
     queryset = Account.objects.all()
     
+class AddressViewSet(viewsets.ModelViewSet):
+    serializer_class = AddressSerialzer
+    queryset = Address.objects.all()
+    
+class CardViewSet(viewsets.ModelViewSet):
+    serializer_class = CardSerializer
+    queryset=Card.objects.all()
+    
+class LoanViewSet(viewsets.ModelViewSet):
+    serializer_class = LoanSerializer
+    queryset = Loan.objects.all()
+    

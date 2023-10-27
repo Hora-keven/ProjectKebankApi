@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
@@ -57,7 +58,7 @@ class User(AbstractBaseUser):
     modified_date = models.DateTimeField(auto_now=True)
     is_staff = models.BooleanField(default=False)
     is_admin =  models.BooleanField(default=False)
-    is_active =  models.BooleanField(default=False)
+    is_active =  models.BooleanField(default=True)
     is_staff=  models.BooleanField(default=False)
     is_superadmin = models.BooleanField(default=False)
     objects = UserManager()
@@ -79,8 +80,8 @@ class User(AbstractBaseUser):
 class LegalPerson(models.Model):
     legal_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
     born_date = models.CharField(max_length=10, blank=False)
-    cpf = models.CharField(max_length=11, blank=False, primary_key=True)
-    rg = models.CharField(max_length=9, blank=False)
+    cpf = models.CharField(max_length=11, blank=False, primary_key=True, unique=True)
+    rg = models.CharField(max_length=9, blank=False, unique=True)
     
     def save(self, *args, **kwargs):
         super(LegalPerson, self).save(*args, **kwargs)
@@ -90,7 +91,7 @@ class JuridicPerson(models.Model):
     juridic_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="juridic_person_User")
     state_registration = models.CharField(max_length=11)
     open_date = models.CharField(max_length=10, blank=False)
-    cnpj = models.CharField(max_length=14, primary_key=True)
+    cnpj = models.CharField(max_length=14, primary_key=True, unique=True)
     
     def save(self, *args, **kwargs):
         super(JuridicPerson, self).save(*args, **kwargs)
@@ -101,11 +102,74 @@ class Account(models.Model):
     number = models.IntegerField(blank=True)
     number_verificate = models.IntegerField(blank=True)
     type_account = models.CharField(max_length=20)
-    limit = models.DecimalField(max_digits=10, decimal_places=2 )
+    limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True )
     active = models.BooleanField(default=True)
     legal_person = models.ForeignKey(LegalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_LegalPerson")
     juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_JuridicPerson")
     
     def save(self, *args, **kwargs):
         super(Account, self).save(*args, **kwargs)
- 
+        
+class Address(models.Model):
+    city = models.CharField(max_length=100, blank=False)
+    neighborhood = models.CharField(max_length=100, blank=False)
+    federative_unit = models.CharField(max_length=2, blank=False)
+    pac = models.CharField(max_length=10, blank=False)
+    public_place = models.CharField(max_length=100, blank=False)
+    legal_person = models.ForeignKey(LegalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_address_LegalPerson")
+    juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_address_JuridicPerson")
+    
+    def save(self, *args, **kwargs):
+        super(Address, self).save(*args, **kwargs)
+        
+class Card(models.Model):
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False)
+    flag_card = models.CharField(max_length=20, blank=True)
+    number = models.CharField(max_length=16, unique=True, blank=True)
+    validity = models.CharField(max_length=7, blank=True)
+    cvv = models.IntegerField( blank=True)
+    
+
+    def save(self, *args, **kwargs):
+        super(Card, self).save(*args, **kwargs)
+        
+class Movimentation(models.Model):
+    date_hour = models.DateTimeField(auto_now_add=True)
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="card_movimentation")
+    value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
+    state = models.BooleanField(default=True)
+    
+    def save(self, *args, **kwargs):
+        super(Movimentation, self).save(*args, **kwargs)
+        
+class Loan(models.Model):
+    date_solicitation = models.DateTimeField(auto_now_add=True)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False)
+    fees = models.DecimalField(max_digits=3, decimal_places=1, blank=True)
+    date_approved = models.DateField(auto_now_add=True)
+    requested_amount = models.DecimalField(max_digits=10, decimal_places=3, blank=False)
+    approved = models.BooleanField(blank=True)
+    installment_quantity = models.IntegerField()
+    
+    def save(self, *args, **kwargs):
+        super(Loan, self).save(*args, **kwargs)
+
+class Investment(models.Model):
+    contribuition = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
+    investment_type = models.CharField(max_length=30, blank=False)
+    rentability = models.DecimalField(max_digits=10, decimal_places=2)
+    date_closure = models.CharField(max_length=10, blank=False)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="investment")
+    administration_fee = models.DecimalField(max_digits=3, decimal_places=2)
+    
+    def save(self, *args, **kwargs):
+        super(Investment, self).save(*args, **kwargs)
+        
+class LoanInstallment(models.Model):
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
+    due_date = models.CharField(max_length=10, blank=False)
+    installment_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
+    payment_date = models.DateField(auto_now_add=True)
+    
+    def save(self, *args, **kwargs):
+        super(LoanInstallment, self).save(*args, **kwargs)
