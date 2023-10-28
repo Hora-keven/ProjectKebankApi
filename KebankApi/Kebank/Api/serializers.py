@@ -1,6 +1,8 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from Kebank.models import *
 import random
+from decimal import Decimal
 class LegalPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalPerson
@@ -75,31 +77,45 @@ class LoanSerializer(serializers.ModelSerializer):
   class Meta:
     model = Loan
     fields = "__all__"
+  
     
   def create(self, validated_data):
-    true_false = random.randint(a=0, b=1)
-    aprroved_or_no = [False, True]
-    aprroved = aprroved_or_no[true_false]
-    
+  
     loan = Loan(
       account = validated_data["account"],
       requested_amount = validated_data["requested_amount"],
-      approved = aprroved,
+      approved = False,
       installment_quantity = validated_data["installment_quantity"]
     )
     
-    if loan.installment_quantity == 12:
-        loan.fees = 0.5
-    elif loan.installment_quantity == 24:
-        loan.fees = 0.6
+    if loan.installment_quantity == 12 and loan.account.limit >= loan.requested_amount:
+        loan.fees = Decimal(0.50)
+        loan.account.limit -= loan.requested_amount*loan.fees 
+        loan.approved = True 
+
+    elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
+        loan.fees = Decimal(0.60)
+        loan.account.limit -= loan.requested_amount*loan.fees 
+        loan.approved = True 
+
+    elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
+        loan.fees = Decimal(0.8)
+        loan.account.limit -= loan.requested_amount*loan.fees
+        loan.approved = True 
+
     else:
-      loan.fees = 0.8
-   
-  
-    balance = Account.objects.get(id=int(validated_data["account"]))
-    balance.limit = loan.fees*validated_data["requested_amount"]
-    balance.save()
+        raise serializers.ValidationError("Loan not approved")
+    
+    
+
+    movimentation = Movimentation(
+        value = loan.requested_amount,
+        card = Card.objects.get(account=loan.account),
+    )
+    
+    movimentation.save()
     loan.save() 
+    loan.account.save()
     return loan
 
       
