@@ -1,8 +1,9 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from Kebank.models import *
-import random
+import number_rand as n
 from decimal import Decimal
+
 class LegalPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalPerson
@@ -20,9 +21,9 @@ class AccountSerializer(serializers.ModelSerializer):
       
     def create(self, validated_data):
       agency = 5434
-      number = random.randint(b=900000000, a=100000000)
-      number_verificate = random.randint(b=5, a=1)
-      limit = random.randint(a=300,b=1000000)
+      number = n.number(100000000, 900000000)
+      number_verificate = n.number(1, 5)
+      limit = n.number(300, 1000000)
         
       account = Account(
           agency = agency,
