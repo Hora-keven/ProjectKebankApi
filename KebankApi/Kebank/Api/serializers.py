@@ -27,7 +27,7 @@ class AccountSerializer(serializers.ModelSerializer):
           number_verificate =number_random(1, 5),
           type_account=validated_data["type_account"],
           limit = number_random(300, 1000000),
-          legal_person = validated_data["legal_person"],
+          physical_person = validated_data["physical_person"],
       )
     
       account.save()
