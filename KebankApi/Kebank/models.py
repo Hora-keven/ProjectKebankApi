@@ -77,14 +77,14 @@ class User(AbstractBaseUser):
         return True
     
         
-class LegalPerson(models.Model):
-    legal_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
+class PhysicalPerson(models.Model):
+    physical_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
     born_date = models.CharField(max_length=10, blank=False)
     cpf = models.CharField(max_length=11, blank=False, primary_key=True, unique=True)
     rg = models.CharField(max_length=9, blank=False, unique=True)
     
     def save(self, *args, **kwargs):
-        super(LegalPerson, self).save(*args, **kwargs)
+        super(PhysicalPerson, self).save(*args, **kwargs)
     
 
 class JuridicPerson(models.Model):
@@ -104,8 +104,8 @@ class Account(models.Model):
     type_account = models.CharField(max_length=20)
     limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True )
     active = models.BooleanField(default=True)
-    legal_person = models.ForeignKey(LegalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_LegalPerson")
-    juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_JuridicPerson")
+    physical_person = models.OneToOneField(PhysicalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_LegalPerson", unique=True)
+    juridic_person = models.OneToOneField(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_JuridicPerson", unique=True)
     
     def save(self, *args, **kwargs):
         super(Account, self).save(*args, **kwargs)
@@ -116,7 +116,7 @@ class Address(models.Model):
     federative_unit = models.CharField(max_length=2, blank=False)
     pac = models.CharField(max_length=10, blank=False)
     public_place = models.CharField(max_length=100, blank=False)
-    legal_person = models.ForeignKey(LegalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_address_LegalPerson")
+    physical_person = models.ForeignKey(PhysicalPerson, on_delete=models.CASCADE,  null=True, related_name="physical_person_address_LegalPerson")
     juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_address_JuridicPerson")
     
     def save(self, *args, **kwargs):
@@ -129,7 +129,6 @@ class Card(models.Model):
     validity = models.CharField(max_length=7, blank=True)
     cvv = models.IntegerField( blank=True)
     
-
     def save(self, *args, **kwargs):
         super(Card, self).save(*args, **kwargs)
         
@@ -137,7 +136,7 @@ class Movimentation(models.Model):
     date_hour = models.DateTimeField(auto_now_add=True)
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="card_movimentation")
     value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
-    state = models.BooleanField(default=True)
+    state = models.CharField(max_length=100, blank=False)
     
     def save(self, *args, **kwargs):
         super(Movimentation, self).save(*args, **kwargs)
@@ -157,10 +156,11 @@ class Loan(models.Model):
 class Investment(models.Model):
     contribuition = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
     investment_type = models.CharField(max_length=30, blank=False)
-    rentability = models.DecimalField(max_digits=10, decimal_places=2)
+    rentability = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
     date_closure = models.CharField(max_length=10, blank=False)
+    income = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="investment")
-    administration_fee = models.DecimalField(max_digits=3, decimal_places=2)
+    administration_fee = models.DecimalField(max_digits=3, decimal_places=2, blank=True)
     
     def save(self, *args, **kwargs):
         super(Investment, self).save(*args, **kwargs)
@@ -173,3 +173,12 @@ class LoanInstallment(models.Model):
     
     def save(self, *args, **kwargs):
         super(LoanInstallment, self).save(*args, **kwargs)
+
+class Pix(models.Model):
+    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="from_account")
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="to_account")
+        
+    def save(self, *args, **kwargs):
+        super(Pix, self).save(*args, **kwargs)
+        

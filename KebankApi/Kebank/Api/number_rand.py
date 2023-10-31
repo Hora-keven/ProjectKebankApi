@@ -1,5 +1,5 @@
 import random
 
-def number(a, b):
+def number_random(a, b):
     number = random.randint(a, b)
     return number

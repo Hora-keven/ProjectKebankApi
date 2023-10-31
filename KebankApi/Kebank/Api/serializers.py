@@ -1,12 +1,12 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from Kebank.models import *
-import number_rand as n
+from Kebank.Api.number_rand import *
 from decimal import Decimal
 
-class LegalPersonSerializer(serializers.ModelSerializer):
+class PhysicalPersonSerializer(serializers.ModelSerializer):
     class Meta:
-        model = LegalPerson
+        model = PhysicalPerson
         fields = "__all__"
 
 class JuridicPersonSerializer(serializers.ModelSerializer):
@@ -20,17 +20,13 @@ class AccountSerializer(serializers.ModelSerializer):
       fields = "__all__"
       
     def create(self, validated_data):
-      agency = 5434
-      number = n.number(100000000, 900000000)
-      number_verificate = n.number(1, 5)
-      limit = n.number(300, 1000000)
-        
+    
       account = Account(
-          agency = agency,
-          number = number,
-          number_verificate = number_verificate,
+          agency = 5434,
+          number = number_random(100000000, 900000000),
+          number_verificate =number_random(1, 5),
           type_account=validated_data["type_account"],
-          limit = limit,
+          limit = number_random(300, 1000000),
           legal_person = validated_data["legal_person"],
       )
     
@@ -42,7 +38,6 @@ class AddressSerialzer(serializers.ModelSerializer):
     class Meta:
       model = Address
       fields = "__all__"
-      
       
 class MovimentationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,16 +53,14 @@ class CardSerializer(serializers.ModelSerializer):
     fields = "__all__"
     
   def create(self, validated_data):
-    number = random.randint(a=1000000000000, b=10000000000000)
-    cvv = random.randint(a=100, b=900)
-    number_str = str(number)+"0810"
-    
+    number = number_random(a=1000000000000, b=10000000000000)
+
     card = Card(
        account = validated_data["account"],
        flag_card = "Mastercard",
-       number = number_str,
+       number = str(number)+"0810",
        validity = "12/2035",
-       cvv = cvv
+       cvv = number_random(a=100, b=900)
      )
     card.save()
     
@@ -118,6 +111,81 @@ class LoanSerializer(serializers.ModelSerializer):
     loan.save() 
     loan.account.save()
     return loan
+  
+  
+class PixSerializer(serializers.ModelSerializer):
+    class Meta:
+      model = Pix
+      fields = "__all__"
+      
+    def create(self, validated_data):
+      pix = Pix(
+        from_account = validated_data["from_account"],
+        value = validated_data["value"],
+        to_account = validated_data["to_account"]
+      )
+      
+      if pix.value > pix.from_account.limit:
+          raise serializers.ValidationError("Value is bigger than your limit")
+        
+      else:
+        pix.from_account.limit -= pix.value
+        pix.to_account.limit += pix.value
+        
+        pix.from_account.save()
+        pix.to_account.save()
+        pix.save()
+        
+        movimetation_from = Movimentation(
+          value = (-pix.value),
+          card = Card.objects.get(account = pix.from_account),
+          state = "sent"
+        )
+        movimetation_to= Movimentation(
+          value = pix.value,
+          card = Card.objects.get(account = pix.to_account),
+          state = "received"
+        )
+        
+        movimetation_from.save()
+        movimetation_to.save()
+        
+      return pix
+    
+class InvestmentSerializer(serializers.ModelSerializer):
+    class Meta:
+      model = Investment
+      fields = "__all__"
+      
+    def create(self, validated_data):
+      
+      investment = Investment(
+          contribuition = validated_data["contribuition"],
+          investment_type = "Fixa",
+          rentability = "1.37",
+          date_closure = validated_data["date_closure"],
+          income = "0.00",
+          account = validated_data["account"],
+          administration_fee = "0.30"
+          
+      )
+      if investment.contribuition >  investment.account.limit:
+        raise serializers.ValidationError("Contribuition is more than limit")
+      
+      else:
+        movimetation = Movimentation(
+          value = (-investment.contribuition),
+          card = Card.objects.get(account = investment.account),
+          state = "Investment successfully"
+        )
+        movimetation.save()
+        investment.account.limit -= investment.contribuition
+        investment.account.save()
+        investment.save()
+        
+        
+        
+      return investment
 
       
       
