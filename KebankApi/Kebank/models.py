@@ -79,7 +79,7 @@ class User(AbstractBaseUser):
         
 class PhysicalPerson(models.Model):
     physical_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
-    born_date = models.CharField(max_length=10, blank=False)
+    born_date = models.DateField(null=False, blank=False)
     cpf = models.CharField(max_length=11, blank=False, primary_key=True, unique=True)
     rg = models.CharField(max_length=9, blank=False, unique=True)
     
@@ -90,7 +90,7 @@ class PhysicalPerson(models.Model):
 class JuridicPerson(models.Model):
     juridic_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="juridic_person_User")
     state_registration = models.CharField(max_length=11)
-    open_date = models.CharField(max_length=10, blank=False)
+    open_date = models.DateField(null=False, blank=False)
     cnpj = models.CharField(max_length=14, primary_key=True, unique=True)
     
     def save(self, *args, **kwargs):
@@ -134,7 +134,7 @@ class Card(models.Model):
         
 class Movimentation(models.Model):
     date_hour = models.DateTimeField(auto_now_add=True)
-    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="card_movimentation")
+    account =  models.ForeignKey(Account, on_delete=models.CASCADE, related_name="account_movimentation")
     value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
     state = models.CharField(max_length=100, blank=False)
     

@@ -1,5 +1,5 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from django.shortcuts import get_object_or_404
 from Kebank.models import *
 from Kebank.Api.number_rand import *
 from decimal import Decimal
@@ -29,7 +29,6 @@ class AccountSerializer(serializers.ModelSerializer):
           limit = number_random(300, 1000000),
           physical_person = validated_data["physical_person"],
       )
-    
       account.save()
         
       return account
@@ -99,7 +98,6 @@ class LoanSerializer(serializers.ModelSerializer):
 
     else:
         raise serializers.ValidationError("Loan not approved")
-    
     
 
     movimentation = Movimentation(
@@ -173,19 +171,23 @@ class InvestmentSerializer(serializers.ModelSerializer):
         raise serializers.ValidationError("Contribuition is more than limit")
       
       else:
-        movimetation = Movimentation(
+        movimentation = Movimentation(
           value = (-investment.contribuition),
-          card = Card.objects.get(account = investment.account),
+          account = Card.objects.get(account = investment.account.id),
           state = "Investment successfully"
         )
-        movimetation.save()
+     
+    
+        movimentation.save()
         investment.account.limit -= investment.contribuition
         investment.account.save()
-        investment.save()
-        
-        
+        investment.save() 
         
       return investment
+    
+    
+      
+   
 
       
       

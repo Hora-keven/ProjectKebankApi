@@ -4,6 +4,7 @@ from Kebank.Api.viewsets import *
 urlpatterns = [
 
     path('physicalperson/', PhysicalPersonViewSet.as_view({"post":"create", "get":"list"})),
+    path('physicalperson/<int:pk>', PhysicalPersonViewSet.as_view({"get":"list"})),
     path('juridicperson/', JuridicPersonViewSet.as_view({"post":"create", "get":"list"})),
     path('account/', AccountViewSet.as_view({"post":"create", "get":"list"})),
     path("address/", AddressViewSet.as_view({"post":"create", "get":"list"})),
