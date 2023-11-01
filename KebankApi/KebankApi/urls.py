@@ -22,5 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/version1/", include("Kebank.urls")),
     path("api/version1/", include("djoser.urls")),
-    path("api/auth/", include("djoser.urls.authtoken"))
+    path("api/version1/auth/", include("djoser.urls.authtoken")),
+ 
 ]

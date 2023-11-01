@@ -102,7 +102,8 @@ class LoanSerializer(serializers.ModelSerializer):
 
     movimentation = Movimentation(
         value = loan.requested_amount,
-        card = Card.objects.get(account=loan.account),
+        account = Account.objects.get(id=loan.account.id),
+        state = "loan successfully"
     )
     
     movimentation.save()
@@ -187,7 +188,6 @@ class InvestmentSerializer(serializers.ModelSerializer):
     
     
       
-   
 
       
       

@@ -2,7 +2,10 @@ from collections.abc import Iterable
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
 
 class UserManager(BaseUserManager):
     def create_user(self,first_name, surname, username, email, password=None):
@@ -17,10 +20,10 @@ class UserManager(BaseUserManager):
             first_name = first_name,
             surname = surname,
         )
-        
+      
         user.set_password(password)
         user.save(using=self.db)
-        
+
         return user
     
     def create_superuser(self,first_name, surname,username, email, password=None):
@@ -61,11 +64,12 @@ class User(AbstractBaseUser):
     is_active =  models.BooleanField(default=True)
     is_staff=  models.BooleanField(default=False)
     is_superadmin = models.BooleanField(default=False)
+  
     objects = UserManager()
     
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = [ "first_name", "surname", "email"]
-    
+    REQUIRED_FIELDS = ["first_name", "surname", "email"]
+   
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
@@ -76,7 +80,6 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return True
     
-        
 class PhysicalPerson(models.Model):
     physical_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
     born_date = models.DateField(null=False, blank=False)
@@ -182,3 +185,13 @@ class Pix(models.Model):
     def save(self, *args, **kwargs):
         super(Pix, self).save(*args, **kwargs)
         
+    
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_auth_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)
+
+
+
+
+    

@@ -14,4 +14,5 @@ urlpatterns = [
     path("movimentation/", MovimentationViewSet.as_view({"get":"list"})),
     path("pix/", PixViewSet.as_view({"post":"create", "get":"list"})),
     path("investment/", InvestmentViewSet.as_view({"post":"create", "get":"list"})),
+   
 ]

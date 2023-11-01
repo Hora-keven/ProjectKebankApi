@@ -66,6 +66,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'KebankApi.urls'
 
+SIMPLE_JWT = {
+   'AUTH_HEADER_TYPES': ('JWT',),
+}
+
 AUTH_USER_MODEL = 'Kebank.User'
 TEMPLATES = [
     {
