@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-jp5ay0n(ovshx6^o@5qmh!asn*hex+fhpl7m!2$$_9s_hn*pyx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["192.168.0.104"]
 
 
 # Application definition
@@ -41,12 +41,14 @@ INSTALLED_APPS = [
     'rest_framework',
     "rest_framework.authtoken",
     "djoser",
+    'corsheaders',
    
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
+         'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -61,8 +63,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:19006",
+  
+]
 
 ROOT_URLCONF = 'KebankApi.urls'
 
