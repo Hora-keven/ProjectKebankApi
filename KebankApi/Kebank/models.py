@@ -20,7 +20,7 @@ class UserManager(BaseUserManager):
             first_name = first_name,
             surname = surname,
         )
-      
+        user.username = user.email
         user.set_password(password)
         user.save(using=self.db)
 
@@ -40,6 +40,7 @@ class UserManager(BaseUserManager):
             surname = surname,
             
         )
+        user.username = user.email
         user.is_admin = True
         user.is_active = True
         user.is_staff= True
@@ -79,6 +80,9 @@ class User(AbstractBaseUser):
     
     def has_module_perms(self, app_label):
         return True
+    
+ 
+    
     
 class PhysicalPerson(models.Model):
     physical_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
@@ -186,11 +190,6 @@ class Pix(models.Model):
         super(Pix, self).save(*args, **kwargs)
         
     
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_auth_token(sender, instance=None, created=False, **kwargs):
-    if created:
-        Token.objects.create(user=instance)
-
 
 
 
