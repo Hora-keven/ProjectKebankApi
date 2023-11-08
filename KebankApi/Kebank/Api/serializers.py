@@ -19,19 +19,6 @@ class AccountSerializer(serializers.ModelSerializer):
       model = Account
       fields = "__all__"
       
-    def create(self, validated_data):
-    
-      account = Account(
-          agency = 5434,
-          number = number_random(100000000, 900000000),
-          number_verificate =number_random(1, 5),
-          type_account=validated_data["type_account"],
-          limit = number_random(300, 1000000),
-          physical_person = validated_data["physical_person"],
-      )
-      account.save()
-        
-      return account
     
 class AddressSerialzer(serializers.ModelSerializer):
     class Meta:
@@ -50,21 +37,6 @@ class CardSerializer(serializers.ModelSerializer):
   class Meta:
     model = Card
     fields = "__all__"
-    
-  def create(self, validated_data):
-    number = number_random(a=1000000000000, b=10000000000000)
-
-    card = Card(
-       account = validated_data["account"],
-       flag_card = "Mastercard",
-       number = str(number)+"0810",
-       validity = "12/2035",
-       cvv = number_random(a=100, b=900)
-     )
-    card.save()
-    
-    return card
-      
       
 class LoanSerializer(serializers.ModelSerializer):
   class Meta:
