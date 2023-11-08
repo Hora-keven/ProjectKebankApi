@@ -7,6 +7,7 @@ urlpatterns = [
     path('physicalperson/<int:pk>', PhysicalPersonViewSet.as_view({"get":"list"})),
     path('juridicperson/', JuridicPersonViewSet.as_view({"post":"create", "get":"list"})),
     path('account/', AccountViewSet.as_view({"post":"create", "get":"list"})),
+    path('account/<int:pk>', AccountViewSet.as_view({"get":"list"})),
     path("address/", AddressViewSet.as_view({"post":"create", "get":"list"})),
     path("card/", CardViewSet.as_view({"post":"create", "get":"list"})),
     path("loan/", LoanViewSet.as_view({"post":"create", "get":"list"})),
