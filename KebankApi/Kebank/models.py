@@ -20,7 +20,7 @@ class UserManager(BaseUserManager):
             first_name = first_name,
             surname = surname,
         )
-        user.username = user.email
+       
         user.set_password(password)
         user.save(using=self.db)
 
@@ -82,8 +82,6 @@ class User(AbstractBaseUser):
         return True
     
  
-    
-    
 class PhysicalPerson(models.Model):
     physical_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name="legal_person_User")
     born_date = models.DateField(null=False, blank=False)
@@ -123,6 +121,7 @@ class Address(models.Model):
     federative_unit = models.CharField(max_length=2, blank=False)
     pac = models.CharField(max_length=10, blank=False)
     public_place = models.CharField(max_length=100, blank=False)
+    street =  models.CharField(max_length=100, blank=False)
     physical_person = models.ForeignKey(PhysicalPerson, on_delete=models.CASCADE,  null=True, related_name="physical_person_address_LegalPerson")
     juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_address_JuridicPerson")
     

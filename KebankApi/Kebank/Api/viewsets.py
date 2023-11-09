@@ -1,4 +1,4 @@
-import statistics
+
 from rest_framework import viewsets, status, filters
 from Kebank.Api.serializers import *
 from Kebank.models import *
@@ -29,7 +29,7 @@ class AccountViewSet(viewsets.ModelViewSet):
       
     def create(self, request, *args, **kwargs):
         data = request.data
-        print(data["physical_person"])
+      
         account = Account(
           agency = 5434,
           number = number_random(100000000, 900000000),
@@ -42,7 +42,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         
         if account_serializer.is_valid():
             account.save()
-            return Response(data=account_serializer.data, status=staus.HTTP_201_CREATED)
+            return Response(data=account_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(data=account_serializer.data, status=status.HTTP_400_BAD_REQUEST)
 
