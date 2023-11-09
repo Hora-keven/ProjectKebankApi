@@ -26,6 +26,15 @@ class AccountViewSet(viewsets.ModelViewSet):
         queryset = Account.objects.filter(physical_person=physical_person)
         
         return queryset
+    
+    def list(self, request, *args, **kwargs):
+        query_set = Account.objects.all()
+        data = AccountSerializer(data=query_set, many=True)
+      
+        if data.is_valid():
+            return Response(data=data.data, status=status.HTTP_400_BAD_REQUEST)
+        else:
+           return Response(data=data.data, status=status.HTTP_200_OK)
       
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -68,11 +77,65 @@ class CardViewSet(viewsets.ModelViewSet):
         cvv = number_random(a=100, b=900)
         )
         card.save()
-        return card 
+        card_serializer = self.serializer_class(data=data)
+        
+        if card_serializer.is_valid():
+            card.save()
+            return Response(data=card_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(data=card_serializer.data, status=status.HTTP_400_BAD_REQUEST)
 
 class LoanViewSet(viewsets.ModelViewSet):
     serializer_class = LoanSerializer
     queryset = Loan.objects.all()
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        loan = Loan(
+        account =Account.objects.get(id=data["account"]),
+        requested_amount = Decimal(data["requested_amount"]),
+        approved = False,
+        installment_quantity = data["installment_quantity"]
+        )
+        
+        if loan.installment_quantity == 12 and loan.account.limit >= loan.requested_amount:
+            loan.fees = Decimal(0.50)
+            loan.account.limit -= loan.requested_amount*loan.fees 
+            loan.approved = True 
+
+        elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
+            loan.fees = Decimal(0.60)
+            loan.account.limit -= loan.requested_amount*loan.fees 
+            loan.approved = True 
+
+        elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
+            loan.fees = Decimal(0.8)
+            loan.account.limit -= loan.requested_amount*loan.fees
+            loan.approved = True 
+
+        else:
+            raise serializers.ValidationError("Loan not approved")
+        
+
+        movimentation = Movimentation(
+            value = loan.requested_amount,
+            account = Account.objects.get(id=loan.account.id),
+            state = "loan successfully"
+        )
+        
+      
+        
+        loan_serializer = LoanSerializer(data=data)
+        if loan_serializer.is_valid():
+            movimentation.save()
+            loan.save() 
+            loan.account.save()
+            
+            return Response(data=loan_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(data=loan_serializer.data, status=status.HTTP_400_BAD_REQUEST)
+   
+   
 
 class MovimentationViewSet(viewsets.ModelViewSet):
     serializer_class = MovimentationSerializer

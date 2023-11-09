@@ -43,45 +43,6 @@ class LoanSerializer(serializers.ModelSerializer):
     model = Loan
     fields = "__all__"
   
-    
-  def create(self, validated_data):
-  
-    loan = Loan(
-      account = validated_data["account"],
-      requested_amount = validated_data["requested_amount"],
-      approved = False,
-      installment_quantity = validated_data["installment_quantity"]
-    )
-    
-    if loan.installment_quantity == 12 and loan.account.limit >= loan.requested_amount:
-        loan.fees = Decimal(0.50)
-        loan.account.limit -= loan.requested_amount*loan.fees 
-        loan.approved = True 
-
-    elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
-        loan.fees = Decimal(0.60)
-        loan.account.limit -= loan.requested_amount*loan.fees 
-        loan.approved = True 
-
-    elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
-        loan.fees = Decimal(0.8)
-        loan.account.limit -= loan.requested_amount*loan.fees
-        loan.approved = True 
-
-    else:
-        raise serializers.ValidationError("Loan not approved")
-    
-
-    movimentation = Movimentation(
-        value = loan.requested_amount,
-        account = Account.objects.get(id=loan.account.id),
-        state = "loan successfully"
-    )
-    
-    movimentation.save()
-    loan.save() 
-    loan.account.save()
-    return loan
   
   
 class PixSerializer(serializers.ModelSerializer):

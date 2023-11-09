@@ -40,7 +40,7 @@ class UserManager(BaseUserManager):
             surname = surname,
             
         )
-        user.username = user.email
+    
         user.is_admin = True
         user.is_active = True
         user.is_staff= True
