@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from django.shortcuts import get_object_or_404
+
 from Kebank.models import *
 from Kebank.Api.number_rand import *
-from decimal import Decimal
+
 
 class PhysicalPersonSerializer(serializers.ModelSerializer):
     class Meta:

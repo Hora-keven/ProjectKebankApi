@@ -109,8 +109,8 @@ class Account(models.Model):
     type_account = models.CharField(max_length=20)
     limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True )
     active = models.BooleanField(default=True)
-    physical_person = models.OneToOneField(PhysicalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_LegalPerson", unique=True)
-    juridic_person = models.OneToOneField(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_JuridicPerson", unique=True)
+    physical_person = models.ForeignKey(PhysicalPerson, on_delete=models.CASCADE,  null=True, related_name="legal_person_LegalPerson", unique=True)
+    juridic_person = models.ForeignKey(JuridicPerson, on_delete=models.CASCADE, null=True, related_name="juridic_person_JuridicPerson", unique=True)
     
     def save(self, *args, **kwargs):
         super(Account, self).save(*args, **kwargs)

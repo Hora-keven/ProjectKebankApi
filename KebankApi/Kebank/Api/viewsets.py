@@ -2,13 +2,16 @@
 from rest_framework import viewsets, status, filters
 from Kebank.Api.serializers import *
 from Kebank.models import *
-
+# from Kebank.Api.filters import AccountFilter
+from decimal import Decimal
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
-
+from rest_framework.permissions import IsAuthenticated
 
 class PhysicalPersonViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalPersonSerializer
     queryset = PhysicalPerson.objects.all()
+    permission_classes = (IsAuthenticated,)
     
 class JuridicPersonViewSet(viewsets.ModelViewSet):
     serializer_class = JuridicPersonSerializer
@@ -16,25 +19,19 @@ class JuridicPersonViewSet(viewsets.ModelViewSet):
     
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
-    queryset = Account.objects.all()
+   
     
     def get_queryset(self):
-        pk = self.kwargs["pk"]
+        cpf = self.kwargs['cpf'] 
+        return Account.objects.filter(physical_person__cpf=cpf)
       
-        physical_person = PhysicalPerson.objects.get(cpf=pk)
-        queryset = Account.objects.filter(physical_person=physical_person)
-        
-        return queryset
     
     def list(self, request, *args, **kwargs):
-        query_set = Account.objects.all()
-        data = AccountSerializer(data=query_set, many=True)
-      
-        if data.is_valid():
-            return Response(data=data.data, status=status.HTTP_400_BAD_REQUEST)
-        else:
-           return Response(data=data.data, status=status.HTTP_200_OK)
-      
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = AccountSerializer(queryset, many=True)
+        
+        return Response(serializer.data)
+    
     def create(self, request, *args, **kwargs):
         data = request.data
       
@@ -146,7 +143,7 @@ class PixViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         data = request.data
-        
+        print(data["from_account"])
         pix = Pix(
         from_account = Account.objects.get(id=data["from_account"]),
         value = Decimal(data["value"]),
