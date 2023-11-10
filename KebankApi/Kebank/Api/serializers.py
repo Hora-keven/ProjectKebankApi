@@ -50,39 +50,7 @@ class PixSerializer(serializers.ModelSerializer):
       model = Pix
       fields = "__all__"
       
-    def create(self, validated_data):
-      pix = Pix(
-        from_account = validated_data["from_account"],
-        value = validated_data["value"],
-        to_account = validated_data["to_account"]
-      )
-      
-      if pix.value > pix.from_account.limit:
-          raise serializers.ValidationError("Value is bigger than your limit")
-        
-      else:
-        pix.from_account.limit -= pix.value
-        pix.to_account.limit += pix.value
-        
-        pix.from_account.save()
-        pix.to_account.save()
-        pix.save()
-        
-        movimetation_from = Movimentation(
-          value = (-pix.value),
-          card = Card.objects.get(account = pix.from_account),
-          state = "sent"
-        )
-        movimetation_to= Movimentation(
-          value = pix.value,
-          card = Card.objects.get(account = pix.to_account),
-          state = "received"
-        )
-        
-        movimetation_from.save()
-        movimetation_to.save()
-        
-      return pix
+  
     
 class InvestmentSerializer(serializers.ModelSerializer):
     class Meta:

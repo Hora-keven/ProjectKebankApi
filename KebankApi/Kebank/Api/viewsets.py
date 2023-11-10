@@ -2,8 +2,7 @@
 from rest_framework import viewsets, status, filters
 from Kebank.Api.serializers import *
 from Kebank.models import *
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
+
 from rest_framework.response import Response
 
 
@@ -133,7 +132,7 @@ class LoanViewSet(viewsets.ModelViewSet):
             
             return Response(data=loan_serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(data=loan_serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=loan_serializer.data,  status=status.HTTP_400_BAD_REQUEST)
    
    
 
@@ -146,7 +145,52 @@ class PixViewSet(viewsets.ModelViewSet):
     queryset = Pix.objects.all()
     
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        data = request.data
+        
+        pix = Pix(
+        from_account = Account.objects.get(id=data["from_account"]),
+        value = Decimal(data["value"]),
+        to_account = Account.objects.get(id=data["to_account"])
+        )
+      
+        if pix.value > pix.from_account.limit:
+            raise Response("Value is bigger than your limit")
+            
+        else:
+            pix.from_account.limit -= pix.value
+            pix.to_account.limit += pix.value
+            
+         
+        movimetation_from = Movimentation(
+          value = (-pix.value),
+          account = Account.objects.get(id = pix.from_account.id),
+          state = "sent"
+        )
+        movimetation_to= Movimentation(
+          value = pix.value,
+          account = Account.objects.get(id = pix.to_account.id),
+          state = "received"
+        )
+        
+      
+            
+   
+        
+        pix_serializer = PixSerializer(data=data)
+        
+        if pix_serializer.is_valid():
+            movimetation_from.save()
+            movimetation_to.save()
+            pix.from_account.save()
+            pix.to_account.save()
+            pix.save()
+            
+            return Response(pix_serializer.data, status=status.HTTP_201_CREATED)
+        return Response("Error")
+    
+    
+  
+
     
 class InvestmentViewSet(viewsets.ModelViewSet):
     serializer_class = InvestmentSerializer
