@@ -137,6 +137,9 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     serializer_class = MovimentationSerializer
     queryset = Movimentation.objects.all()
     
+    filter_backends = (SearchFilter, )
+    filterset_fields = ("account_movimentation",)
+    
 class PixViewSet(viewsets.ModelViewSet):
     serializer_class = PixSerializer
     queryset = Pix.objects.all()
@@ -151,7 +154,7 @@ class PixViewSet(viewsets.ModelViewSet):
         )
       
         if pix.value > pix.from_account.limit:
-            raise Response("Value is bigger than your limit")
+            return Response("Value is bigger than your limit", status=status.HTTP_404_NOT_FOUND)
             
         else:
             pix.from_account.limit -= pix.value
