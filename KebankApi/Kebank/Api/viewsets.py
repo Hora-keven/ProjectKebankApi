@@ -110,16 +110,13 @@ class LoanViewSet(viewsets.ModelViewSet):
             loan.approved = True 
 
         else:
-            raise serializers.ValidationError("Loan not approved")
+            raise Exception("Loan not approved")
         
-
         movimentation = Movimentation(
             value = loan.requested_amount,
             account = Account.objects.get(id=loan.account.id),
             state = "loan successfully"
         )
-        
-      
         
         loan_serializer = LoanSerializer(data=data)
         if loan_serializer.is_valid():
@@ -186,11 +183,8 @@ class PixViewSet(viewsets.ModelViewSet):
             pix.save()
             
             return Response(pix_serializer.data, status=status.HTTP_201_CREATED)
-        return Response("Error")
+        return Exception("Error")
     
-    
-  
-
     
 class InvestmentViewSet(viewsets.ModelViewSet):
     serializer_class = InvestmentSerializer
