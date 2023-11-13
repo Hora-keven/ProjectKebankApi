@@ -1,17 +1,16 @@
 
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status
 from Kebank.Api.serializers import *
 from Kebank.models import *
-# from Kebank.Api.filters import AccountFilter
 from decimal import Decimal
 from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 class PhysicalPersonViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalPersonSerializer
     queryset = PhysicalPerson.objects.all()
-    permission_classes = (IsAuthenticated,)
     
 class JuridicPersonViewSet(viewsets.ModelViewSet):
     serializer_class = JuridicPersonSerializer
@@ -19,12 +18,12 @@ class JuridicPersonViewSet(viewsets.ModelViewSet):
     
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
-   
+    queryset = Account.objects.all()
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["id", "physical_person", "juridic_person"]
     
-    def get_queryset(self):
-        cpf = self.kwargs['cpf'] 
-        return Account.objects.filter(physical_person__cpf=cpf)
-      
+
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -41,16 +40,19 @@ class AccountViewSet(viewsets.ModelViewSet):
           number_verificate =number_random(1, 5),
           type_account=data["type_account"],
           limit = number_random(300, 1000000),
-          physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"]),
-        )
-        account_serializer = self.serializer_class(data=data)
         
+        )
+        if data["physical_person"] == None:
+            account.juridic_person = JuridicPerson.objects.get(cnpj=data["juridic_person"])
+        else:
+            account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
+        
+        account_serializer = self.serializer_class(data=data) 
         if account_serializer.is_valid():
-            account.save()
-            return Response(data=account_serializer.data, status=status.HTTP_201_CREATED)
+                account.save()
+                return Response(data=account_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(data=account_serializer.data, status=status.HTTP_400_BAD_REQUEST)
-
        
     
 class AddressViewSet(viewsets.ModelViewSet):
@@ -134,8 +136,8 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     serializer_class = MovimentationSerializer
     queryset = Movimentation.objects.all()
     
-    filter_backends = (SearchFilter, )
-    filterset_fields = ("account_movimentation",)
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["account"]
     
 class PixViewSet(viewsets.ModelViewSet):
     serializer_class = PixSerializer
