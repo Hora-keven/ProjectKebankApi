@@ -5,7 +5,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from rest_framework.authtoken.models import Token
+
 
 class UserManager(BaseUserManager):
     def create_user(self,first_name, surname, username, email, password=None):

@@ -35,19 +35,35 @@ class AccountViewSet(viewsets.ModelViewSet):
         account = Account(
           agency = 5434,
           number = number_random(100000000, 900000000),
-          number_verificate =number_random(1, 9),
+          number_verificate = number_random(1, 9),
           type_account=data["type_account"],
           limit = number_random(300, 1000000),
         
         )
+        
+        number = number_random(a=1000000000000, b=10000000000000)
+        
+        card = Card(
+        flag_card = "Mastercard",
+        number = str(number)+"0810",
+        validity = "12/2035",
+        cvv = number_random(a=100, b=900)
+        )
+        
         if data["physical_person"] == None:
             account.juridic_person = JuridicPerson.objects.get(cnpj=data["juridic_person"])
+            card.account = Account.objects.get(juridic_person=account.juridic_person)
+            card.save()
         else:
             account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
-        
+            card.account = Account.objects.get(physical_person=account.physical_person)
+            card.save()
+            
         account_serializer = self.serializer_class(data=data) 
+        
         if account_serializer.is_valid():
                 account.save()
+               
                 return Response(data=account_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(data=account_serializer.data, status=status.HTTP_400_BAD_REQUEST)
@@ -62,24 +78,6 @@ class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
     queryset=Card.objects.all()
     
-    def create(self, request, *args, **kwargs):
-        number = number_random(a=1000000000000, b=10000000000000)
-        data = request.data
-        card = Card(
-        account = Account.objects.get(id=data["account"]),
-        flag_card = "Mastercard",
-        number = str(number)+"0810",
-        validity = "12/2035",
-        cvv = number_random(a=100, b=900)
-        )
-        card.save()
-        card_serializer = self.serializer_class(data=data)
-        
-        if card_serializer.is_valid():
-            card.save()
-            return Response(data=card_serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(data=card_serializer.data, status=status.HTTP_400_BAD_REQUEST)
 
 class LoanViewSet(viewsets.ModelViewSet):
     serializer_class = LoanSerializer
@@ -96,17 +94,17 @@ class LoanViewSet(viewsets.ModelViewSet):
         
         if loan.installment_quantity == 12 and loan.account.limit >= loan.requested_amount:
             loan.fees = Decimal(0.50)
-            loan.account.limit -= loan.requested_amount*loan.fees 
+            loan.account.limit += loan.requested_amount*loan.fees 
             loan.approved = True 
 
         elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
             loan.fees = Decimal(0.60)
-            loan.account.limit -= loan.requested_amount*loan.fees 
+            loan.account.limit += loan.requested_amount*loan.fees 
             loan.approved = True 
 
         elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
             loan.fees = Decimal(0.8)
-            loan.account.limit -= loan.requested_amount*loan.fees
+            loan.account.limit += loan.requested_amount*loan.fees
             loan.approved = True 
 
         else:
@@ -169,10 +167,6 @@ class PixViewSet(viewsets.ModelViewSet):
           state = "received"
         )
         
-      
-            
-   
-        
         pix_serializer = PixSerializer(data=data)
         
         if pix_serializer.is_valid():
@@ -183,6 +177,7 @@ class PixViewSet(viewsets.ModelViewSet):
             pix.save()
             
             return Response(pix_serializer.data, status=status.HTTP_201_CREATED)
+        
         return Exception("Error")
     
     
