@@ -23,8 +23,6 @@ class AccountViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["id", "physical_person", "juridic_person"]
     
-
-    
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = AccountSerializer(queryset, many=True)
@@ -37,7 +35,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         account = Account(
           agency = 5434,
           number = number_random(100000000, 900000000),
-          number_verificate =number_random(1, 5),
+          number_verificate =number_random(1, 9),
           type_account=data["type_account"],
           limit = number_random(300, 1000000),
         
@@ -68,7 +66,7 @@ class CardViewSet(viewsets.ModelViewSet):
         number = number_random(a=1000000000000, b=10000000000000)
         data = request.data
         card = Card(
-        account = data["account"],
+        account = Account.objects.get(id=data["account"]),
         flag_card = "Mastercard",
         number = str(number)+"0810",
         validity = "12/2035",

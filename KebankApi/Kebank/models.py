@@ -53,7 +53,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser):
     
     first_name = models.CharField(max_length=100, blank=False)
-    surname = models.CharField(max_length=100,  blank=False)
+    surname = models.CharField(max_length=100,  blank=True, null=True)
     username = models.CharField(max_length=30, unique=True,  blank=True)
     email = models.EmailField(max_length=100, unique=True, blank=False)
     phone_number = models.CharField(max_length=11, blank=False)
