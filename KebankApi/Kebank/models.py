@@ -1,10 +1,6 @@
-from collections.abc import Iterable
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
-from django.conf import settings
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 
 class UserManager(BaseUserManager):
@@ -91,7 +87,9 @@ class PhysicalPerson(models.Model):
     def save(self, *args, **kwargs):
         super(PhysicalPerson, self).save(*args, **kwargs)
     
-
+    def __str__(self) -> str:
+        return f"{self.cpf}"
+    
 class JuridicPerson(models.Model):
     fk_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="juridic_person_User")
     state_registration = models.CharField(max_length=11)
@@ -100,6 +98,9 @@ class JuridicPerson(models.Model):
     
     def save(self, *args, **kwargs):
         super(JuridicPerson, self).save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.cnpj}"
         
         
 class Account(models.Model):
@@ -114,7 +115,11 @@ class Account(models.Model):
     
     def save(self, *args, **kwargs):
         super(Account, self).save(*args, **kwargs)
-        
+
+    def __str__(self) -> str:
+        return f'{ self.id} {self.type_account}'
+    
+    
 class Address(models.Model):
     city = models.CharField(max_length=100, blank=False)
     neighborhood = models.CharField(max_length=100, blank=False)
@@ -187,6 +192,14 @@ class Pix(models.Model):
         
     def save(self, *args, **kwargs):
         super(Pix, self).save(*args, **kwargs)
+
+class CreditCard(models.Model):
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False,related_name="account_card_credit")
+    flag_card = models.CharField(max_length=20, blank=True)
+    number = models.CharField(max_length=16, unique=True, blank=True)
+    validity = models.CharField(max_length=7, blank=True)
+    cvv = models.IntegerField( blank=True)
+    limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
         
     
 

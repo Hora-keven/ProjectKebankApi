@@ -57,6 +57,13 @@ class InvestmentSerializer(serializers.ModelSerializer):
     class Meta:
       model = Investment
       fields = "__all__"
+
+class CreditCardSerializer(serializers.ModelSerializer):
+   class Meta:
+      model=CreditCard
+      fields = "__all__"
+
+      write_only_fields = "account"
       
     
     

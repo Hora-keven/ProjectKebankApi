@@ -141,6 +141,9 @@ class MovimentationViewSet(viewsets.ModelViewSet):
 class PixViewSet(viewsets.ModelViewSet):
     serializer_class = PixSerializer
     queryset = Pix.objects.all()
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["from_account"]
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -187,5 +190,38 @@ class PixViewSet(viewsets.ModelViewSet):
 class InvestmentViewSet(viewsets.ModelViewSet):
     serializer_class = InvestmentSerializer
     queryset = Investment.objects.all()
+
+class CreditCardViewSet(viewsets.ModelViewSet):
+    serializer_class = CreditCardSerializer
+    queryset = CreditCard.objects.all()
     
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        number = number_random(a=1000000000000, b=10000000000000)
+
+        credit_card = CreditCard(
+            account=Account.objects.get(id=data["account"]),
+            flag_card = "Mastercard",
+            number = str(number)+"0810",
+            validity = "12/2035",
+            cvv = number_random(a=100, b=900),
+
+        )
+        if credit_card.account.limit >= 1000:
+            credit_card.limit = credit_card.account.limit * Decimal(0.5)
+        
+        elif credit_card.account.limit <= 500:
+            credit_card.limit =credit_card.account.limit * Decimal( 0.2)
+        else:
+            raise Exception("credit card is not aprroved")
+
+        credit_card_serializer = CreditCardSerializer(data=data)
+
+        if credit_card_serializer.is_valid():
+            credit_card.save()
+
+            return Response(credit_card_serializer.data, 
+                            status=status.HTTP_201_CREATED)
+        
+        return super().create(request, *args, **kwargs)
 
