@@ -15,6 +15,7 @@ class PhysicalPersonViewSet(viewsets.ModelViewSet):
 class JuridicPersonViewSet(viewsets.ModelViewSet):
     serializer_class = JuridicPersonSerializer
     queryset = JuridicPerson.objects.all()
+
     
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
@@ -22,12 +23,6 @@ class AccountViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["id", "physical_person", "juridic_person"]
-    
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = AccountSerializer(queryset, many=True)
-        
-        return Response(serializer.data)
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -37,7 +32,7 @@ class AccountViewSet(viewsets.ModelViewSet):
           number = number_random(100000000, 900000000),
           number_verificate = number_random(1, 9),
           type_account=data["type_account"],
-          limit = number_random(300, 1000000),
+          limit = number_random(300, 10000),
         
         )
         
@@ -108,13 +103,21 @@ class LoanViewSet(viewsets.ModelViewSet):
             loan.approved = True 
 
         else:
+            movimentation = Movimentation(
+                value = loan.requested_amount,
+                account = Account.objects.get(id=loan.account.id),
+                state = "loan not approved"
+            )
+            movimentation.save()
             raise Exception("Loan not approved")
         
         movimentation = Movimentation(
-            value = loan.requested_amount,
-            account = Account.objects.get(id=loan.account.id),
-            state = "loan successfully"
-        )
+                value = loan.requested_amount,
+                account = Account.objects.get(id=loan.account.id),
+                state = "loan successfully"
+            )
+        
+            
         
         loan_serializer = LoanSerializer(data=data)
         if loan_serializer.is_valid():
