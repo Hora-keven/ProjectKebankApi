@@ -190,7 +190,35 @@ class PixViewSet(viewsets.ModelViewSet):
 class InvestmentViewSet(viewsets.ModelViewSet):
     serializer_class = InvestmentSerializer
     queryset = Investment.objects.all()
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        
+        investment = Investment(
+            contribuition = data["contribuition"],
+            investment_type=data["investment_type"],
+            date_closure=data["date_closure"],
+            account = Account.objects.get(id=data["account"])
+        )
+        
+        if investment.account.limit < investment.contribuition:
+            raise Exception("Your contribuition is more than your limit")
 
+        investment.account.limit -= investment.contribuition
+        invest_serializer = InvestmentSerializer(data=data)
+        movimetation = Movimentation(
+          value = (-investment.contribuition),
+          account = investment.account
+          state = "Investment"
+        )
+        
+        if invest_serializer.is_valid():
+            investment.save()
+            movimetation.save()
+            
+            return Response(data=invest_serializer.data)
+            
+            
 class CreditCardViewSet(viewsets.ModelViewSet):
     serializer_class = CreditCardSerializer
     queryset = CreditCard.objects.all()
