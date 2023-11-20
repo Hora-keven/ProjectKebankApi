@@ -3,14 +3,17 @@ from rest_framework import viewsets, status
 from Kebank.Api.serializers import *
 from Kebank.models import *
 from decimal import Decimal
-from rest_framework.filters import SearchFilter
+from Kebank.Api.number_rand import number_random
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+
 
 class PhysicalPersonViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalPersonSerializer
     queryset = PhysicalPerson.objects.all()
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = [ "cpf"]
     
 class JuridicPersonViewSet(viewsets.ModelViewSet):
     serializer_class = JuridicPersonSerializer
@@ -22,7 +25,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
 
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "physical_person", "juridic_person"]
+    filterset_fields = ["id", "physical_person", "juridic_person", "from_account"]
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -35,24 +38,14 @@ class AccountViewSet(viewsets.ModelViewSet):
           limit = number_random(300, 10000),
         
         )
-        
-        number = number_random(a=1000000000000, b=10000000000000)
-        
-        card = Card(
-        flag_card = "Mastercard",
-        number = str(number)+"0810",
-        validity = "12/2035",
-        cvv = number_random(a=100, b=900)
-        )
+       
         
         if data["physical_person"] == None:
             account.juridic_person = JuridicPerson.objects.get(cnpj=data["juridic_person"])
-            card.account = Account.objects.get(juridic_person=account.juridic_person)
-            card.save()
+        
         else:
             account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
-            card.account = Account.objects.get(physical_person=account.physical_person)
-            card.save()
+           
             
         account_serializer = self.serializer_class(data=data) 
         
@@ -72,6 +65,31 @@ class AddressViewSet(viewsets.ModelViewSet):
 class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
     queryset=Card.objects.all()
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["account"]
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        print(data["account"])
+       
+        card_serializer = CardSerializer(data=data)
+      
+        print(card_serializer.is_valid())
+
+        if card_serializer.is_valid():
+          
+            card_serializer.save()
+           
+
+        return Response(data=card_serializer.data,status=status.HTTP_201_CREATED)
+    
+       
+     
+        
+      
+    
+       
     
 
 class LoanViewSet(viewsets.ModelViewSet):
@@ -83,24 +101,21 @@ class LoanViewSet(viewsets.ModelViewSet):
         loan = Loan(
         account =Account.objects.get(id=data["account"]),
         requested_amount = Decimal(data["requested_amount"]),
-        approved = False,
-        installment_quantity = data["installment_quantity"]
+        installment_quantity = data["installment_quantity"],
+        installment_value=0.0
         )
         
         if loan.installment_quantity == 12 and loan.account.limit >= loan.requested_amount:
             loan.fees = Decimal(0.50)
-            loan.account.limit += loan.requested_amount*loan.fees 
-            loan.approved = True 
+            loan.installment_value = Decimal((loan.requested_amount+loan.requested_amount*loan.fees)/12)
 
         elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
             loan.fees = Decimal(0.60)
-            loan.account.limit += loan.requested_amount*loan.fees 
-            loan.approved = True 
-
-        elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
+            loan.installment_value = Decimal((loan.requested_amount+loan.requested_amount*loan.fees)/24)
+        elif loan.installment_quantity == 36 and loan.account.limit >= loan.requested_amount:
             loan.fees = Decimal(0.8)
-            loan.account.limit += loan.requested_amount*loan.fees
-            loan.approved = True 
+            loan.installment_value = Decimal((loan.requested_amount+loan.requested_amount*loan.fees)/36)
+
 
         else:
             movimentation = Movimentation(
@@ -108,9 +123,12 @@ class LoanViewSet(viewsets.ModelViewSet):
                 account = Account.objects.get(id=loan.account.id),
                 state = "loan not approved"
             )
+            
             movimentation.save()
-            raise Exception("Loan not approved")
+            return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
         
+        loan.account.limit += loan.requested_amount
+        loan.approved = True 
         movimentation = Movimentation(
                 value = loan.requested_amount,
                 account = Account.objects.get(id=loan.account.id),
@@ -195,26 +213,39 @@ class InvestmentViewSet(viewsets.ModelViewSet):
         data = request.data
         
         investment = Investment(
-            contribuition = data["contribuition"],
+
+            contribuition = Decimal(data["contribuition"]),
             investment_type=data["investment_type"],
             date_closure=data["date_closure"],
-            account = Account.objects.get(id=data["account"])
+            account = Account.objects.get(id=data["account"]),
+            rentability = "100% CDI",
+            administration_fee = Decimal(0.10)
+           
         )
         
         if investment.account.limit < investment.contribuition:
+            movimetation = Movimentation(
+                value = (-investment.contribuition),
+                account = investment.account,
+                state = "Investment not approved"
+                )
+            movimetation.save()
             raise Exception("Your contribuition is more than your limit")
 
+     
         investment.account.limit -= investment.contribuition
         invest_serializer = InvestmentSerializer(data=data)
+
         movimetation = Movimentation(
           value = (-investment.contribuition),
-          account = investment.account
+          account = investment.account,
           state = "Investment"
         )
         
         if invest_serializer.is_valid():
             investment.save()
             movimetation.save()
+            investment.account.save()
             
             return Response(data=invest_serializer.data)
             
@@ -222,15 +253,18 @@ class InvestmentViewSet(viewsets.ModelViewSet):
 class CreditCardViewSet(viewsets.ModelViewSet):
     serializer_class = CreditCardSerializer
     queryset = CreditCard.objects.all()
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["account"]
     
     def create(self, request, *args, **kwargs):
         data = request.data
-        number = number_random(a=1000000000000, b=10000000000000)
+        number = number_random(a=100000000000, b=1000000000000)
 
         credit_card = CreditCard(
             account=Account.objects.get(id=data["account"]),
-            flag_card = "Mastercard",
-            number = str(number)+"0810",
+            flag_card = "Visa",
+            number = str(number)+"2304",
             validity = "12/2035",
             cvv = number_random(a=100, b=900),
 

@@ -20,6 +20,23 @@ class CardSerializer(serializers.ModelSerializer):
   class Meta:
     model = Card
     fields = "__all__"
+  
+  def to_internal_value(self, data):
+      
+        return {
+            'account': Account.objects.get(id=data['account']),
+            'flag_card': 'Mastercard',
+            'number': str(number_random(a=100000000000, b=1000000000000))+"0810",
+            'validity': '12/2035',
+            'cvv': number_random(100, 900),  
+        }
+
+  def create(self, validated_data):
+       
+        return Card.objects.create(**validated_data)
+
+  
+    
       
 class LoanSerializer(serializers.ModelSerializer):
   class Meta:
@@ -32,15 +49,15 @@ class PixSerializer(serializers.ModelSerializer):
       fields = "__all__"
 
 class AccountSerializer(serializers.ModelSerializer):
-    account_card = CardSerializer(many=True)
-
+    account_card = CardSerializer(many=True, read_only=True)
+    from_account = PixSerializer(many=True, read_only=True)
     class Meta:
       model = Account
       fields = "__all__"
         
 
 class PhysicalPersonSerializer(serializers.ModelSerializer):
- 
+    legal_person_LegalPerson = AccountSerializer(many=True, read_only=True)
   
     class Meta:
         model = PhysicalPerson

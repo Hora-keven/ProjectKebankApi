@@ -135,10 +135,10 @@ class Address(models.Model):
         
 class Card(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False, related_name="account_card")
-    flag_card = models.CharField(max_length=20, blank=True)
-    number = models.CharField(max_length=16, unique=True, blank=True)
+    flag_card = models.CharField(max_length=20, default="Mastercard")
+    number = models.CharField(max_length=16, unique=True)
     validity = models.CharField(max_length=7, blank=True)
-    cvv = models.IntegerField( blank=True)
+    cvv = models.IntegerField()
     
     def save(self, *args, **kwargs):
         super(Card, self).save(*args, **kwargs)
@@ -160,6 +160,7 @@ class Loan(models.Model):
     requested_amount = models.DecimalField(max_digits=10, decimal_places=3, blank=False)
     approved = models.BooleanField(blank=True)
     installment_quantity = models.IntegerField()
+    installment_value = models.DecimalField(max_digits=10,decimal_places=2, blank=True )
     
     def save(self, *args, **kwargs):
         super(Loan, self).save(*args, **kwargs)
@@ -167,9 +168,8 @@ class Loan(models.Model):
 class Investment(models.Model):
     contribuition = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
     investment_type = models.CharField(max_length=30, blank=False)
-    rentability = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
+    rentability = models.CharField(max_length=20, blank=True)
     date_closure = models.CharField(max_length=10, blank=False)
-    income = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="investment")
     administration_fee = models.DecimalField(max_digits=3, decimal_places=2, blank=True)
     
