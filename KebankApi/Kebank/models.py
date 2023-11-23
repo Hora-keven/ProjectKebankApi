@@ -194,10 +194,10 @@ class Pix(models.Model):
         super(Pix, self).save(*args, **kwargs)
 
 class CreditCard(models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False,related_name="account_card_credit")
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, null=False, unique=True, related_name="account_card_credit")
     flag_card = models.CharField(max_length=20, blank=True)
     number = models.CharField(max_length=16, unique=True, blank=True)
-    validity = models.CharField(max_length=7, blank=True)
+    validity = models.DateField()
     cvv = models.IntegerField( blank=True)
     limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
         

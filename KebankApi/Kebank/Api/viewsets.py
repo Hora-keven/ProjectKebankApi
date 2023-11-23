@@ -183,12 +183,12 @@ class PixViewSet(viewsets.ModelViewSet):
         movimetation_from = Movimentation(
           value = (-pix.value),
           account = Account.objects.get(id = pix.from_account.id),
-          state = "sent"
+          state = "Transferência enviada"
         )
         movimetation_to= Movimentation(
           value = pix.value,
           account = Account.objects.get(id = pix.to_account.id),
-          state = "received"
+          state = "Transferencia recebida"
         )
         
         pix_serializer = PixSerializer(data=data)
@@ -227,7 +227,7 @@ class InvestmentViewSet(viewsets.ModelViewSet):
             movimetation = Movimentation(
                 value = (-investment.contribuition),
                 account = investment.account,
-                state = "Investment not approved"
+                state = "Investimento não aprovado"
                 )
             movimetation.save()
             raise Exception("Your contribuition is more than your limit")
@@ -239,7 +239,7 @@ class InvestmentViewSet(viewsets.ModelViewSet):
         movimetation = Movimentation(
           value = (-investment.contribuition),
           account = investment.account,
-          state = "Investment"
+          state = "Investimento realizado com sucesso"
         )
         
         if invest_serializer.is_valid():
@@ -265,7 +265,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             account=Account.objects.get(id=data["account"]),
             flag_card = "Visa",
             number = str(number)+"2304",
-            validity = "12/2035",
+            validity = date_future_timezone,
             cvv = number_random(a=100, b=900),
 
         )
