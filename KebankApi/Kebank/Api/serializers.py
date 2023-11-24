@@ -73,7 +73,7 @@ class AccountSerializer(serializers.ModelSerializer):
         
 
 class PhysicalPersonSerializer(serializers.ModelSerializer):
-    legal_person_LegalPerson = AccountSerializer(many=True, read_only=True)
+    fk_user = serializers.CharField(source='first_name', read_only=True)
   
     class Meta:
         model = PhysicalPerson

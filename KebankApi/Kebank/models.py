@@ -4,15 +4,15 @@ from django.contrib.auth.base_user import BaseUserManager
 
 
 class UserManager(BaseUserManager):
-    def create_user(self,first_name, surname, username, email, password=None):
+    def create_user(self,first_name, surname, cpf_cnpj, email, password=None):
         if not email:
             raise ValueError("Put an email address")
-        if not username:
+        if not cpf_cnpj:
             raise ValueError("Put an username")
         
         user = self.model(
             email = email,
-            username = username,
+            cpf_cnpj = cpf_cnpj,
             first_name = first_name,
             surname = surname,
         )
@@ -22,15 +22,15 @@ class UserManager(BaseUserManager):
 
         return user
     
-    def create_superuser(self,first_name, surname,username, email, password=None):
+    def create_superuser(self,first_name, surname,cpf_cnpj, email, password=None):
         if not email:
             raise ValueError("Put an email address")
-        if not username:
+        if not cpf_cnpj:
             raise ValueError("Put an username")
         
         user = self.create_user(
             email = self.normalize_email(email=email),
-            username = username,
+            cpf_cnpj = cpf_cnpj,
             password=password,
             first_name = first_name,
             surname = surname,
@@ -50,7 +50,7 @@ class User(AbstractBaseUser):
     
     first_name = models.CharField(max_length=100, blank=False)
     surname = models.CharField(max_length=100,  blank=True, null=True)
-    username = models.CharField(max_length=30, unique=True,  blank=True)
+    cpf_cnpj = models.CharField(max_length=30, unique=True,  blank=True)
     email = models.EmailField(max_length=100, unique=True, blank=False)
     phone_number = models.CharField(max_length=11, blank=False)
     date_joined = models.DateTimeField(auto_now_add=True)
@@ -64,7 +64,7 @@ class User(AbstractBaseUser):
   
     objects = UserManager()
     
-    USERNAME_FIELD = "username"
+    USERNAME_FIELD = "cpf_cnpj"
     REQUIRED_FIELDS = ["first_name", "surname", "email"]
    
     class Meta:
@@ -89,6 +89,9 @@ class PhysicalPerson(models.Model):
     
     def __str__(self) -> str:
         return f"{self.cpf}"
+    
+    def first_name(self):
+        return self.fk_user.first_name
     
 class JuridicPerson(models.Model):
     fk_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="juridic_person_User")
