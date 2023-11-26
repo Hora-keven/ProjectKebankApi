@@ -90,8 +90,7 @@ class PhysicalPerson(models.Model):
     def __str__(self) -> str:
         return f"{self.cpf}"
     
-    def first_name(self):
-        return self.fk_user.first_name
+    
     
 class JuridicPerson(models.Model):
     fk_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="juridic_person_User")
@@ -196,11 +195,13 @@ class Pix(models.Model):
     def save(self, *args, **kwargs):
         super(Pix, self).save(*args, **kwargs)
 
+    
+
 class CreditCard(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, null=False, unique=True, related_name="account_card_credit")
     flag_card = models.CharField(max_length=20, blank=True)
     number = models.CharField(max_length=16, unique=True, blank=True)
-    validity = models.DateField()
+    validity = models.DateField(blank=True)
     cvv = models.IntegerField( blank=True)
     limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
         

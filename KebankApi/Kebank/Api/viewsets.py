@@ -25,7 +25,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
 
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "physical_person", "juridic_person", "from_account"]
+    filterset_fields = ["id", "physical_person", "juridic_person"]
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -154,7 +154,7 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     queryset = Movimentation.objects.all()
     
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["account", "state"]
+    filterset_fields = ["account", "state", "date_hour"]
     
 class PixViewSet(viewsets.ModelViewSet):
     serializer_class = PixSerializer
@@ -165,7 +165,7 @@ class PixViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         data = request.data
-        print(data["from_account"])
+      
         pix = Pix(
         from_account = Account.objects.get(id=data["from_account"]),
         value = Decimal(data["value"]),
