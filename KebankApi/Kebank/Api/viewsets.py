@@ -6,7 +6,8 @@ from decimal import Decimal
 from Kebank.Api.number_rand import number_random
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
-from rest_framework.filters import SearchFilter
+
+from rest_framework.throttling import UserRateThrottle
 
 class PhysicalPersonViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalPersonSerializer
@@ -23,7 +24,7 @@ class JuridicPersonViewSet(viewsets.ModelViewSet):
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
     queryset = Account.objects.all()
-
+    throttle_classes = [UserRateThrottle]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["id", "physical_person", "juridic_person"]
     
@@ -43,9 +44,10 @@ class AccountViewSet(viewsets.ModelViewSet):
         if data["physical_person"] == None:
             account.juridic_person = JuridicPerson.objects.get(cnpj=data["juridic_person"])
         
-        else:
+        elif data['juridic_person'] == None:
             account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
-           
+        else:
+            return Response({"detail":"alguns campos estão sem preencher"}, status=status.HTTP_400_BAD_REQUEST) 
             
         account_serializer = self.serializer_class(data=data) 
         
@@ -84,14 +86,6 @@ class CardViewSet(viewsets.ModelViewSet):
 
         return Response(data=card_serializer.data,status=status.HTTP_201_CREATED)
     
-       
-     
-        
-      
-    
-       
-    
-
 class LoanViewSet(viewsets.ModelViewSet):
     serializer_class = LoanSerializer
     queryset = Loan.objects.all()
@@ -146,7 +140,6 @@ class LoanViewSet(viewsets.ModelViewSet):
             return Response(data=loan_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(data=loan_serializer.data,  status=status.HTTP_400_BAD_REQUEST)
-   
    
 
 class MovimentationViewSet(viewsets.ModelViewSet):
@@ -230,7 +223,7 @@ class InvestmentViewSet(viewsets.ModelViewSet):
                 state = "Investimento não aprovado"
                 )
             movimetation.save()
-            raise Exception("Your contribuition is more than your limit")
+            return Response({"message":"Your contribuition is more than your limit"}, status=status.HTTP_400_BAD_REQUEST)
 
      
         investment.account.limit -= investment.contribuition
