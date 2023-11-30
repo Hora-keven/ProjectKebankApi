@@ -1,282 +1,180 @@
-
-from rest_framework import viewsets, status
-from Kebank.Api.serializers import *
+from rest_framework import serializers
+from django.db.models import fields
 from Kebank.models import *
-from decimal import Decimal
-from Kebank.Api.number_rand import number_random
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.response import Response
+from Kebank.Api.number_rand import *
+from datetime import datetime, timedelta
 
-from rest_framework.throttling import UserRateThrottle
+import pytz
 
-class PhysicalPersonViewSet(viewsets.ModelViewSet):
-    serializer_class = PhysicalPersonSerializer
-    queryset = PhysicalPerson.objects.all()
+date_actual = datetime.now(pytz.utc)
 
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = [ "cpf"]
-    
-class JuridicPersonViewSet(viewsets.ModelViewSet):
-    serializer_class = JuridicPersonSerializer
-    queryset = JuridicPerson.objects.all()
+date_future = date_actual + timedelta(days=365 * 5)
 
-    
-class AccountViewSet(viewsets.ModelViewSet):
-    serializer_class = AccountSerializer
-    queryset = Account.objects.all()
-    throttle_classes = [UserRateThrottle]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "physical_person", "juridic_person"]
-    
-    def create(self, request, *args, **kwargs):
-        data = request.data
+fuso_horario = pytz.timezone('America/Sao_Paulo')
+
+date_future_timezone = date_future.astimezone(fuso_horario)
+
+
+
+class AddressSerialzer(serializers.ModelSerializer):
+
+    class Meta:
+      model = Address
+      fields = "__all__"
+  
+
       
-        account = Account(
-          agency = 5434,
-          number = number_random(100000000, 900000000),
-          number_verificate = number_random(1, 9),
-          type_account=data["type_account"],
-          limit = number_random(300, 10000),
-        
-        )
-       
-        
-        if data["physical_person"] == None:
-            account.juridic_person = JuridicPerson.objects.get(cnpj=data["juridic_person"])
-        
-        elif data['juridic_person'] == None:
-            account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
-        else:
-            return Response({"detail":"alguns campos estão sem preencher"}, status=status.HTTP_400_BAD_REQUEST) 
-            
-        account_serializer = self.serializer_class(data=data) 
-        
-        if account_serializer.is_valid():
-                account.save()
-               
-                return Response(data=account_serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(data=account_serializer.data, status=status.HTTP_400_BAD_REQUEST)
-       
-    
-class AddressViewSet(viewsets.ModelViewSet):
-    serializer_class = AddressSerialzer
-    queryset = Address.objects.all()
-    
-    
-class CardViewSet(viewsets.ModelViewSet):
-    serializer_class = CardSerializer
-    queryset=Card.objects.all()
-
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["account"]
-
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        print(data["account"])
-       
-        card_serializer = CardSerializer(data=data)
+class CardSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Card
+    fields = "__all__"
+  
+  def to_internal_value(self, data):
       
-        print(card_serializer.is_valid())
+        return {
+            'account': Account.objects.get(id=data['account']),
+            'flag_card': 'Mastercard',
+            'number': str(number_random(a=100000000000, b=1000000000000))+"0810",
+            'validity': date_future_timezone.date(),
+            'cvv': number_random(100, 900),  
+        }
 
-        if card_serializer.is_valid():
-          
-            card_serializer.save()
-           
+  def create(self, validated_data):
+       
+        return Card.objects.create(**validated_data)
 
-        return Response(data=card_serializer.data,status=status.HTTP_201_CREATED)
+  
     
-class LoanViewSet(viewsets.ModelViewSet):
-    serializer_class = LoanSerializer
-    queryset = Loan.objects.all()
+      
+class LoanSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Loan
+    fields = "__all__"
+  
+class PixSerializer(serializers.ModelSerializer):
     
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        loan = Loan(
-        account =Account.objects.get(id=data["account"]),
-        requested_amount = Decimal(data["requested_amount"]),
-        installment_quantity = data["installment_quantity"],
-        installment_value=0.0
-        )
-        
-        if loan.installment_quantity == 12 and loan.account.limit >= loan.requested_amount:
-            loan.fees = Decimal(0.50)
-            loan.installment_value = Decimal((loan.requested_amount+loan.requested_amount*loan.fees)/12)
+    class Meta:
+      model = Pix
+      fields = ["to_account",  "from_account", "value"]
 
-        elif loan.installment_quantity == 24 and loan.account.limit >= loan.requested_amount:
-            loan.fees = Decimal(0.60)
-            loan.installment_value = Decimal((loan.requested_amount+loan.requested_amount*loan.fees)/24)
-        elif loan.installment_quantity == 36 and loan.account.limit >= loan.requested_amount:
-            loan.fees = Decimal(0.8)
-            loan.installment_value = Decimal((loan.requested_amount+loan.requested_amount*loan.fees)/36)
-
-
-        else:
-            movimentation = Movimentation(
-                value = loan.requested_amount,
-                account = Account.objects.get(id=loan.account.id),
-                state = "loan not approved"
-            )
-            
-            movimentation.save()
-            return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
-        
-        loan.account.limit += loan.requested_amount
-        loan.approved = True 
-        movimentation = Movimentation(
-                value = loan.requested_amount,
-                account = Account.objects.get(id=loan.account.id),
-                state = "loan successfully"
-            )
-        
-            
-        
-        loan_serializer = LoanSerializer(data=data)
-        if loan_serializer.is_valid():
-            movimentation.save()
-            loan.save() 
-            loan.account.save()
-            
-            return Response(data=loan_serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(data=loan_serializer.data,  status=status.HTTP_400_BAD_REQUEST)
    
+    
 
-class MovimentationViewSet(viewsets.ModelViewSet):
-    serializer_class = MovimentationSerializer
-    queryset = Movimentation.objects.all()
+class AccountSerializer(serializers.ModelSerializer):
+    account_card = CardSerializer(many=True, read_only=True)
+  
+    physical_name = serializers.SerializerMethodField()
+    juridic_name = serializers.SerializerMethodField()
     
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["account", "state", "date_hour"]
-    
-class PixViewSet(viewsets.ModelViewSet):
-    serializer_class = PixSerializer
-    queryset = Pix.objects.all()
+    class Meta:
+      model = Account
+      fields = ["id","physical_name", "juridic_name", "account_card", "physical_person", "agency", "number", "limit","juridic_person","number_verificate","type_account" ]
 
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["from_account"]
-    
-    def create(self, request, *args, **kwargs):
-        data = request.data
-      
-        pix = Pix(
-        from_account = Account.objects.get(id=data["from_account"]),
-        value = Decimal(data["value"]),
-        to_account = Account.objects.get(id=data["to_account"])
-        )
-      
-        if pix.value > pix.from_account.limit:
-            return Response("Value is bigger than your limit", status=status.HTTP_404_NOT_FOUND)
-            
+    def get_physical_name(self, obj):
+        physical_person = getattr(obj, 'physical_person', None)
+
+        if physical_person:
+            user = physical_person.fk_user
+            return {'id': user.id, 'first_name': user.first_name}
+        
         else:
-            pix.from_account.limit -= pix.value
-            pix.to_account.limit += pix.value
-            
-         
-        movimetation_from = Movimentation(
-          value = (-pix.value),
-          account = Account.objects.get(id = pix.from_account.id),
-          state = "Transferência enviada"
-        )
-        movimetation_to= Movimentation(
-          value = pix.value,
-          account = Account.objects.get(id = pix.to_account.id),
-          state = "Transferencia recebida"
-        )
-        
-        pix_serializer = PixSerializer(data=data)
-        
-        if pix_serializer.is_valid():
-            movimetation_from.save()
-            movimetation_to.save()
-            pix.from_account.save()
-            pix.to_account.save()
-            pix.save()
-            
-            return Response(pix_serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Exception("Error")
-    
-    
-class InvestmentViewSet(viewsets.ModelViewSet):
-    serializer_class = InvestmentSerializer
-    queryset = Investment.objects.all()
-    
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        
-        investment = Investment(
+            return None
+          
+    def get_juridic_name(self, obj):
+        juridic_person = getattr(obj, 'juridic_person', None)
 
-            contribuition = Decimal(data["contribuition"]),
-            investment_type=data["investment_type"],
-            date_closure=data["date_closure"],
-            account = Account.objects.get(id=data["account"]),
-            rentability = "100% CDI",
-            administration_fee = Decimal(0.10)
-           
-        )
+        if juridic_person:
+            user = juridic_person.fk_user
+            return {'id': user.id, 'first_name': user.first_name}
         
-        if investment.account.limit < investment.contribuition:
-            movimetation = Movimentation(
-                value = (-investment.contribuition),
-                account = investment.account,
-                state = "Investimento não aprovado"
-                )
-            movimetation.save()
-            return Response({"message":"Your contribuition is more than your limit"}, status=status.HTTP_400_BAD_REQUEST)
-
-     
-        investment.account.limit -= investment.contribuition
-        invest_serializer = InvestmentSerializer(data=data)
-
-        movimetation = Movimentation(
-          value = (-investment.contribuition),
-          account = investment.account,
-          state = "Investimento realizado com sucesso"
-        )
-        
-        if invest_serializer.is_valid():
-            investment.save()
-            movimetation.save()
-            investment.account.save()
-            
-            return Response(data=invest_serializer.data)
-            
-            
-class CreditCardViewSet(viewsets.ModelViewSet):
-    serializer_class = CreditCardSerializer
-    queryset = CreditCard.objects.all()
-
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["account"]
-    
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        number = number_random(a=100000000000, b=1000000000000)
-
-        credit_card = CreditCard(
-            account=Account.objects.get(id=data["account"]),
-            flag_card = "Visa",
-            number = str(number)+"2304",
-            validity = date_future_timezone,
-            cvv = number_random(a=100, b=900),
-
-        )
-        if credit_card.account.limit >= 1000:
-            credit_card.limit = credit_card.account.limit * Decimal(0.5)
-        
-        elif credit_card.account.limit <= 500:
-            credit_card.limit =credit_card.account.limit * Decimal( 0.2)
         else:
-            raise Exception("credit card is not aprroved")
-
-        credit_card_serializer = CreditCardSerializer(data=data)
-
-        if credit_card_serializer.is_valid():
-            credit_card.save()
-
-            return Response(credit_card_serializer.data, 
-                            status=status.HTTP_201_CREATED)
+            return None
         
-        return super().create(request, *args, **kwargs)
+    def create(self, validated_data):
+        physical_person = validated_data.pop('physical_person') 
+        juridic_person = validated_data.pop("juridic_person")
+        
+        instance_physical_person = Account.objects.create(**physical_person)
+        instance_juridic_person =  Account.objects.create(**juridic_person)
+        
+        validated_data['physical_person'] = instance_physical_person
+        validated_data['juridic_person'] = instance_juridic_person
 
+        if physical_person:
+          
+          return instance_physical_person
+        else:
+          return instance_juridic_person
+        
+
+  
+    
+class MovimentationSerializer(serializers.ModelSerializer):
+    date_hour = serializers.SerializerMethodField()
+    account = serializers.SerializerMethodField()
+    class Meta:
+      model = Movimentation
+      fields = "__all__"
+
+  
+    def get_date_hour(self, instance):
+    
+        return instance.date_hour.strftime('%d/%m/%Y %H:%M:%S')   
+      
+    
+    def get_account(self, obj):
+        user = getattr(obj, 'account', None)
+        
+        if user.physical_person:
+            user = user.physical_person
+            return {'cpf': user.cpf, 'name': user.fk_user.first_name}
+        elif user.juridic_person:
+            user = user.juridic_person
+            return {'cnpj': user.cnpj, 'Company_name': user.fk_user.first_name}
+        else:
+          return None
+      
+class PhysicalPersonSerializer(serializers.ModelSerializer):
+   
+    user = serializers.SerializerMethodField()
+  
+    class Meta:
+        model = PhysicalPerson
+        fields = [  "cpf", "rg","born_date", "user", "fk_user"]
+
+    def get_user(self, obj):
+        user = obj.fk_user
+        return {'id': user.id, 'first_name': user.first_name}
+
+class JuridicPersonSerializer(serializers.ModelSerializer):
+
+  
+  class Meta:
+        model = JuridicPerson
+        fields = "__all__"
+    
+class InvestmentSerializer(serializers.ModelSerializer):
+    class Meta:
+      model = Investment
+      fields = "__all__"
+
+class CreditCardSerializer(serializers.ModelSerializer):
+   class Meta:
+      model=CreditCard
+      fields = "__all__"
+
+      write_only_fields = "account"
+      
+    
+    
+    
+      
+
+      
+      
+  
+
+  
+        
+        
+        
