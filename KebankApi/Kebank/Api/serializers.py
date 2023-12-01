@@ -7,17 +7,11 @@ from datetime import datetime, timedelta
 import pytz
 
 date_actual = datetime.now(pytz.utc)
-
 date_future = date_actual + timedelta(days=365 * 5)
-
 fuso_horario = pytz.timezone('America/Sao_Paulo')
-
 date_future_timezone = date_future.astimezone(fuso_horario)
 
-
-
 class AddressSerialzer(serializers.ModelSerializer):
-
     class Meta:
       model = Address
       fields = "__all__"
@@ -30,7 +24,6 @@ class MovimentationSerializer(serializers.ModelSerializer):
 
   
     def get_date_hour(self, instance):
-    
         return instance.date_hour.strftime('%d/%m/%Y %H:%M:%S')
       
 class CardSerializer(serializers.ModelSerializer):
@@ -49,11 +42,8 @@ class CardSerializer(serializers.ModelSerializer):
         }
 
   def create(self, validated_data):
-       
         return Card.objects.create(**validated_data)
 
-  
-    
       
 class LoanSerializer(serializers.ModelSerializer):
   class Meta:
@@ -61,14 +51,41 @@ class LoanSerializer(serializers.ModelSerializer):
     fields = "__all__"
   
 class PixSerializer(serializers.ModelSerializer):
-    
+    to_account_name = serializers.SerializerMethodField()
+    from_account_name = serializers.SerializerMethodField()
     class Meta:
       model = Pix
-      fields = ["to_account",  "from_account", "value"]
+      fields = ["to_account","to_account_name",  "from_account", "from_account_name", "value"]
 
-   
+    def get_to_account_name(self, obj):
+        to_account_user = getattr(obj, 'to_account', None)
+
+        if to_account_user.physical_person:
+            user = to_account_user.physical_person
+            return {'cpf': user.cpf, 'name': user.fk_user.first_name}
+        
+        elif to_account_user.juridic_person:
+            user = to_account_user.juridic_person
+            return {'cnpj': user.cnpj, 'Company_name': user.fk_user.first_name}
+        
+        else:
+            return None
+        
+    def get_from_account_name(self, obj):
+        from_account_user = getattr(obj, 'from_account', None)
+
+        if from_account_user.physical_person:
+            user = from_account_user.physical_person
+            return {'cpf': user.cpf, 'name': user.fk_user.first_name}
+        
+        elif from_account_user.juridic_person:
+            user = from_account_user.juridic_person
+            return {'cnpj': user.cnpj, 'Company_name': user.fk_user.first_name}
+        
+        else:
+            return None
     
-
+   
 class AccountSerializer(serializers.ModelSerializer):
     account_card = CardSerializer(many=True, read_only=True)
   
@@ -79,27 +96,28 @@ class AccountSerializer(serializers.ModelSerializer):
 
     def get_physical_and_juridic_name(self, obj):
         physical_person = getattr(obj, 'physical_person', None)
+        juridic_person = getattr(obj, 'juridic_person', None)
 
         if physical_person:
             user = physical_person.fk_user
-            return {'id': user.id, 'first_name': user.first_name}
+            return {'id': user.id, 'name': user.first_name}
         
+        elif juridic_person:
+            user = juridic_person.fk_user
+            return {'id': user.id, 'Company_name': user.first_name}
         else:
             return None
         
     def create(self, validated_data):
-        physical_person = validated_data.pop('physical_person')  # Extrai os dados da conta de destino
+        physical_person = validated_data.pop('physical_person')  
         to_account_instance = Account.objects.create(**physical_person)
 
-        # Adapte isso conforme necessário, dependendo de como seus modelos e relações estão configurados
+   
         validated_data['physical_person'] = to_account_instance
 
       
         return to_account_instance
         
-
-  
-    
         
 
 class PhysicalPersonSerializer(serializers.ModelSerializer):
