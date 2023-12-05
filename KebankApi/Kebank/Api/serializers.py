@@ -11,6 +11,16 @@ date_future = date_actual + timedelta(days=365 * 5)
 fuso_horario = pytz.timezone('America/Sao_Paulo')
 date_future_timezone = date_future.astimezone(fuso_horario)
 
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "cpf_cnpj", "first_name", "surname", "is_active","password"]
+        
+    password = serializers.CharField(write_only=True)
+   
+
 class AddressSerialzer(serializers.ModelSerializer):
     class Meta:
       model = Address
@@ -55,35 +65,58 @@ class PixSerializer(serializers.ModelSerializer):
     from_account_name = serializers.SerializerMethodField()
     class Meta:
       model = Pix
-      fields = ["to_account","to_account_name",  "from_account", "from_account_name", "value"]
+      fields = ["to_account", "to_account_name",  "from_account", "from_account_name", "value"]
 
     def get_to_account_name(self, obj):
         to_account_user = getattr(obj, 'to_account', None)
-
-        if to_account_user.physical_person:
-            user = to_account_user.physical_person
-            return {'cpf': user.cpf, 'name': user.fk_user.first_name}
         
-        elif to_account_user.juridic_person:
-            user = to_account_user.juridic_person
-            return {'cnpj': user.cnpj, 'Company_name': user.fk_user.first_name}
+    
+      
         
+        if to_account_user:
+            juridic_person = to_account_user.juridic_person
+            physical_person = to_account_user.physical_person
+            
+            if physical_person:
+            
+                return {'cpf': physical_person.cpf, 'name': physical_person.fk_user.first_name}
+            
+            elif juridic_person:
+            
+                return {'cnpj': juridic_person.cnpj, 'Company_name': juridic_person.fk_user.first_name}
+     
         else:
             return None
         
     def get_from_account_name(self, obj):
         from_account_user = getattr(obj, 'from_account', None)
-
-        if from_account_user.physical_person:
-            user = from_account_user.physical_person
-            return {'cpf': user.cpf, 'name': user.fk_user.first_name}
-        
-        elif from_account_user.juridic_person:
-            user = from_account_user.juridic_person
-            return {'cnpj': user.cnpj, 'Company_name': user.fk_user.first_name}
+        if from_account_user:
+            physical_person = from_account_user.physical_person
+            juridic_person = from_account_user.juridic_person
+            
+            if physical_person:
+            
+                return {'cpf': physical_person.cpf, 'name': physical_person.fk_user.first_name}
+            
+            elif juridic_person:
+            
+                return {'cnpj': juridic_person.cnpj, 'Company_name': juridic_person.fk_user.first_name}
         
         else:
             return None
+        
+    def create(self, validated_data):
+        to_account = validated_data.pop('to_account')  
+
+        
+        to_account_instance = Pix.objects.create(**to_account)
+    
+   
+        validated_data['to_account'] = to_account_instance
+
+      
+    
+        return to_account_instance
     
    
 class AccountSerializer(serializers.ModelSerializer):
@@ -110,13 +143,15 @@ class AccountSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         physical_person = validated_data.pop('physical_person')  
-        to_account_instance = Account.objects.create(**physical_person)
-
+        juridic_person = validated_data.pop("juridic_person")
+        
+        to_account_physical_person = Account.objects.create(**physical_person)
+        to_account_juridic_person = Account.objects.create(**juridic_person)
    
-        validated_data['physical_person'] = to_account_instance
-
+        validated_data['physical_person'] = to_account_physical_person
+        validated_data['juridic_person'] = to_account_juridic_person
       
-        return to_account_instance
+        return to_account_physical_person
         
         
 
