@@ -31,6 +31,7 @@ class JuridicPersonViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     throttle_classes = [ UserRateThrottle]
+    
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
     queryset = Account.objects.all()
@@ -76,6 +77,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
     throttle_classes = [ UserRateThrottle]
+    
 class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
     queryset=Card.objects.all()
@@ -170,6 +172,14 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     filterset_fields = ["account", "state", "date_hour"]
     permission_classes = [IsAuthenticated]
     throttle_classes = [ UserRateThrottle]
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        movimentation = Movimentation(
+            type_movimentation = data["type_movimentation"]
+        )
+        
+        
     
 class PixViewSet(viewsets.ModelViewSet):
     serializer_class = PixSerializer

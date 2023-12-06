@@ -210,11 +210,22 @@ class PixCreditCard(models.Model):
         super(Pix, self).save(*args, **kwargs)
         
 class Movimentation(models.Model):
+  
+    
+    type_choices = [
+        ("Pix", "Pix"),
+        ("Pix cartão de crédito", "Pix cartão crédito"),
+        ("Empréstimo", "Empréstimo")
+    ]
+    
     date_hour = models.DateTimeField(auto_now_add=True)
-    account =  models.ForeignKey(Account, on_delete=models.CASCADE, related_name="account_movimentation", null=True)
     value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
+    type_movimentation = models.CharField(max_length=100,choices=type_choices, default="Pix", blank=False, null=True)
     state = models.CharField(max_length=100, blank=False, null=True)
     credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name="credit_movimentation", null=True)
+    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="credit_from_account")
+    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="credit_to_account")
+    
     def save(self, *args, **kwargs):
         super(Movimentation, self).save(*args, **kwargs)
         
