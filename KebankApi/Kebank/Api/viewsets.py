@@ -23,14 +23,14 @@ class PhysicalPersonViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = [ "cpf"]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
   
 class JuridicPersonViewSet(viewsets.ModelViewSet):
     serializer_class = JuridicPersonSerializer
     queryset = JuridicPerson.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
     queryset = Account.objects.all()
@@ -38,7 +38,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["id", "physical_person", "juridic_person"]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -75,7 +75,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     queryset = Address.objects.all()
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
     queryset=Card.objects.all()
@@ -83,7 +83,7 @@ class CardViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["account"]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 
 
     def create(self, request, *args, **kwargs):
@@ -107,7 +107,7 @@ class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -138,7 +138,7 @@ class LoanViewSet(viewsets.ModelViewSet):
             )
             
             movimentation.save()
-            return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail":"Emprestimo não aprovado! "}, status=status.HTTP_400_BAD_REQUEST)
         
         loan.account.limit += loan.requested_amount
         loan.approved = True 
@@ -169,7 +169,8 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["account", "state", "date_hour"]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
+    
 class PixViewSet(viewsets.ModelViewSet):
     serializer_class = PixSerializer
     queryset = Pix.objects.all()
@@ -177,7 +178,7 @@ class PixViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["from_account", "to_account"]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -226,7 +227,7 @@ class InvestmentViewSet(viewsets.ModelViewSet):
     queryset = Investment.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -276,7 +277,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["account"]
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    throttle_classes = [ UserRateThrottle]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -307,3 +308,82 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_201_CREATED)
         
         return super().create(request, *args, **kwargs)
+class PixViewSet(viewsets.ModelViewSet):
+    serializer_class = PixSerializer
+    queryset = Pix.objects.all()
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["from_account", "to_account"]
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ UserRateThrottle]
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+      
+        pix = Pix(
+        from_account = Account.objects.get(id=data["from_account"]),
+        value = Decimal(data["value"]),
+        to_account = Account.objects.get(id=data["to_account"])
+        )
+      
+        if pix.value > pix.from_account.limit:
+            return Response({"detail":"valor solicitado é maior que o seu limite"}, status=status.HTTP_404_NOT_FOUND)
+            
+        else:
+            pix.from_account.limit -= pix.value
+            pix.to_account.limit += pix.value
+            
+         
+        movimetation_from = Movimentation(
+          value = (-pix.value),
+          account = Account.objects.get(id = pix.from_account.id),
+          state = "Transferência enviada"
+        )
+        movimetation_to= Movimentation(
+          value = pix.value,
+          account = Account.objects.get(id = pix.to_account.id),
+          state = "Transferencia recebida"
+        )
+        
+        pix_serializer = PixSerializer(data=data)
+        
+        if pix_serializer.is_valid():
+            movimetation_from.save()
+            movimetation_to.save()
+            pix.from_account.save()
+            pix.to_account.save()
+            pix.save()
+            
+            return Response(data=pix_serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+class PixCreditCardViewSet(viewsets.ModelViewSet):
+    serializer_class = PixCreditCardSerializer
+    queryset = PixCreditCard.objects.all()
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ UserRateThrottle]
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        
+        pix_credit_card = PixCreditCard(
+            credit_card=CreditCard.objects.get(id=data["credit_card"]),
+            value = Decimal(data["value"]),
+            observation = data["observation"]
+        
+            )
+        pix_credit_card_serializer = PixCreditCardSerializer(data=data)
+        if pix_credit_card:
+            if pix_credit_card.value >=  pix_credit_card.credit_card.limit:
+                return Response({"detail":"pix com cartao de credito não aprovado"}) 
+        
+            pix_credit_card.credit_card.limit -= pix_credit_card.value
+            if pix_credit_card_serializer.is_valid():
+                pix_credit_card.save()
+                pix_credit_card.credit_card.save()
+                
+            return Response(data=pix_credit_card_serializer.data, status=status.HTTP_201_CREATED)
+            

@@ -17,4 +17,5 @@ urlpatterns = [
     path("investment/", InvestmentViewSet.as_view({"post":"create", "get":"list"})),
     path("creditcard/", CreditCardViewSet.as_view({"get":"list", "post":"create"})),
     path("users/", UserViewSet.as_view({"get":"list", "post":"create"})),
+    path("pixCreditCard/", PixCreditCardViewSet.as_view({"post":"create", "get":"list"})),
 ]

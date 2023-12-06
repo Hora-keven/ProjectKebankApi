@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
 
 class UserManager(BaseUserManager):
-    def create_user(self,first_name, surname, cpf_cnpj, email, password=None):
+    def create_user(self,first_name, surname, cpf_cnpj, email, image,  password=None):
         if not email:
             raise ValueError("Put an email address")
         if not cpf_cnpj:
@@ -14,6 +14,8 @@ class UserManager(BaseUserManager):
             cpf_cnpj = cpf_cnpj,
             first_name = first_name,
             surname = surname,
+            image=image
+     
         )
        
         user.set_password(password)
@@ -21,19 +23,19 @@ class UserManager(BaseUserManager):
 
         return user
     
-    def create_superuser(self,first_name, surname,cpf_cnpj, email, password=None):
+    def create_superuser(self,first_name, surname,cpf_cnpj,  email, password=None):
         if not email:
             raise ValueError("Put an email address")
         if not cpf_cnpj:
             raise ValueError("Put an username")
         
         user = self.create_user(
-            email = self.normalize_email(email=email),
+            email = self.normalize_email(email),
             cpf_cnpj = cpf_cnpj,
             password=password,
             first_name = first_name,
             surname = surname,
-            
+    
         )
     
         user.is_admin = True
@@ -51,11 +53,11 @@ class User(AbstractBaseUser):
     surname = models.CharField(max_length=100,  blank=True, null=True)
     cpf_cnpj = models.CharField(max_length=30, unique=True,  blank=False)
     email = models.EmailField(max_length=100, unique=True, blank=False)
-    phone_number = models.CharField(max_length=11, blank=False)
+    phone_number = models.CharField(max_length=15, blank=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    
+    image = models.ImageField(upload_to="Kebank/images/%Y/%m/%d/")
     is_staff = models.BooleanField(default=False)
     is_admin =  models.BooleanField(default=False)
     is_active =  models.BooleanField(default=True)
@@ -64,7 +66,8 @@ class User(AbstractBaseUser):
     objects = UserManager()
     
     USERNAME_FIELD = "cpf_cnpj"
-    REQUIRED_FIELDS = ["first_name", "surname", "email"]
+    EMAIL_FIELD = 'email'
+    REQUIRED_FIELDS = ["first_name", "surname", "email", "password", "phone_number"]
    
     class Meta:
         verbose_name = "User"
@@ -144,15 +147,7 @@ class Card(models.Model):
     def save(self, *args, **kwargs):
         super(Card, self).save(*args, **kwargs)
         
-class Movimentation(models.Model):
-    date_hour = models.DateTimeField(auto_now_add=True)
-    account =  models.ForeignKey(Account, on_delete=models.CASCADE, related_name="account_movimentation")
-    value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
-    state = models.CharField(max_length=100, blank=False)
-    
-    def save(self, *args, **kwargs):
-        super(Movimentation, self).save(*args, **kwargs)
-        
+
 class Loan(models.Model):
     date_solicitation = models.DateTimeField(auto_now_add=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False)
@@ -190,6 +185,7 @@ class Pix(models.Model):
     from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="from_account")
     value = models.DecimalField(max_digits=10, decimal_places=2)
     to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="to_account")
+ 
         
     def save(self, *args, **kwargs):
         super(Pix, self).save(*args, **kwargs)
@@ -203,6 +199,26 @@ class CreditCard(models.Model):
     validity = models.DateField(blank=True)
     cvv = models.IntegerField( blank=True)
     limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
+    
+class PixCreditCard(models.Model):
+    credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name="from_account")
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    observation = models.CharField(max_length=100)
+ 
+        
+    def save(self, *args, **kwargs):
+        super(Pix, self).save(*args, **kwargs)
+        
+class Movimentation(models.Model):
+    date_hour = models.DateTimeField(auto_now_add=True)
+    account =  models.ForeignKey(Account, on_delete=models.CASCADE, related_name="account_movimentation", null=True)
+    value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
+    state = models.CharField(max_length=100, blank=False, null=True)
+    credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name="credit_movimentation", null=True)
+    def save(self, *args, **kwargs):
+        super(Movimentation, self).save(*args, **kwargs)
+        
+
         
     
 

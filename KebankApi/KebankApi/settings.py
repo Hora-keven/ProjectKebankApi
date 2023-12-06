@@ -56,6 +56,7 @@ DJOSER = {
     'PERMISSIONS': {
         'user_list': [ "rest_framework.permissions.AllowAny"],
         'user': [ "rest_framework.permissions.AllowAny"],
+     
     },
     'AUTHENTICATION_CLASSES': [
           'rest_framework.authentication.TokenAuthentication',
@@ -110,11 +111,10 @@ CORS_ALLOWED_ORIGINS = [
    
   
 ]
-
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 ROOT_URLCONF = 'KebankApi.urls'
-
 
 AUTH_USER_MODEL = 'Kebank.User'
 TEMPLATES = [

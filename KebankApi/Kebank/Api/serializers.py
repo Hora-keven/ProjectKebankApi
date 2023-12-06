@@ -3,24 +3,22 @@ from django.db.models import fields
 from Kebank.models import *
 from Kebank.Api.number_rand import *
 from datetime import datetime, timedelta
-
+from django.contrib.auth import get_user_model
 import pytz
+from djoser.serializers import *
 
 date_actual = datetime.now(pytz.utc)
 date_future = date_actual + timedelta(days=365 * 5)
 fuso_horario = pytz.timezone('America/Sao_Paulo')
 date_future_timezone = date_future.astimezone(fuso_horario)
 
+User = get_user_model()
 
-
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(UserCreateSerializer):
     class Meta:
         model = User
-        fields = ["id", "cpf_cnpj", "first_name", "surname", "is_active","password"]
+        fields = ["id","first_name", "surname", "email", "password" ,'cpf_cnpj', "image"]
         
-    password = serializers.CharField(write_only=True)
-   
-
 class AddressSerialzer(serializers.ModelSerializer):
     class Meta:
       model = Address
@@ -185,6 +183,13 @@ class CreditCardSerializer(serializers.ModelSerializer):
       fields = "__all__"
 
       write_only_fields = "account"
+      
+class PixCreditCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PixCreditCard
+        fields = "__all__"
+        
+  
       
     
     
