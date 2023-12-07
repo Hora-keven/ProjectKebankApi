@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
 
 class UserManager(BaseUserManager):
-    def create_user(self,first_name, surname, cpf_cnpj, email, image,  password=None):
+    def create_user(self,first_name, surname, cpf_cnpj,  email, image=None,  password=None):
         if not email:
             raise ValueError("Put an email address")
         if not cpf_cnpj:
@@ -14,7 +14,8 @@ class UserManager(BaseUserManager):
             cpf_cnpj = cpf_cnpj,
             first_name = first_name,
             surname = surname,
-            image=image
+            image=image,
+           
      
         )
        
@@ -23,7 +24,7 @@ class UserManager(BaseUserManager):
 
         return user
     
-    def create_superuser(self,first_name, surname,cpf_cnpj,  email, password=None):
+    def create_superuser(self,first_name, surname, cpf_cnpj,  email, password=None):
         if not email:
             raise ValueError("Put an email address")
         if not cpf_cnpj:
@@ -34,7 +35,8 @@ class UserManager(BaseUserManager):
             cpf_cnpj = cpf_cnpj,
             password=password,
             first_name = first_name,
-            surname = surname,
+            surname = surname
+           
     
         )
     
@@ -57,7 +59,7 @@ class User(AbstractBaseUser):
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    image = models.ImageField(upload_to="Kebank/images/%Y/%m/%d/")
+    image = models.ImageField(upload_to="Kebank/images/%Y/%m/%d/", null=True)
     is_staff = models.BooleanField(default=False)
     is_admin =  models.BooleanField(default=False)
     is_active =  models.BooleanField(default=True)
@@ -212,7 +214,7 @@ class PixCreditCard(models.Model):
 class Movimentation(models.Model):
   
     
-    type_choices = [
+    TYPE_CHOICES = [
         ("Pix", "Pix"),
         ("Pix cartão de crédito", "Pix cartão crédito"),
         ("Empréstimo", "Empréstimo")
@@ -220,11 +222,11 @@ class Movimentation(models.Model):
     
     date_hour = models.DateTimeField(auto_now_add=True)
     value = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
-    type_movimentation = models.CharField(max_length=100,choices=type_choices, default="Pix", blank=False, null=True)
-    state = models.CharField(max_length=100, blank=False, null=True)
+    type_movimentation = models.CharField(max_length=100, choices=TYPE_CHOICES, blank=False)
+    state = models.CharField(max_length=100, blank=False)
     credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name="credit_movimentation", null=True)
-    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="credit_from_account")
-    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="credit_to_account")
+    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="credit_from_account", null=True)
+    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="credit_to_account", null=True)
     
     def save(self, *args, **kwargs):
         super(Movimentation, self).save(*args, **kwargs)

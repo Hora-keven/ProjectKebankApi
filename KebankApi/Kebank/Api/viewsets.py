@@ -169,15 +169,86 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     queryset = Movimentation.objects.all()
     authentication_classes = [TokenAuthentication]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["account", "state", "date_hour"]
+    filterset_fields = ["state", "date_hour"]
     permission_classes = [IsAuthenticated]
     throttle_classes = [ UserRateThrottle]
     
     def create(self, request, *args, **kwargs):
         data = request.data
+
         movimentation = Movimentation(
-            type_movimentation = data["type_movimentation"]
+            type_movimentation = data["type_movimentation"],
+            value=Decimal(data["value"])
+           
         )
+      
+        
+        if movimentation.type_movimentation == "Pix":
+            movimentation.credit_card = None
+            movimentation.from_account = Account.objects.get(id=data["from_account"])
+            movimentation.to_account = Account.objects.get(id=data["to_account"])
+
+            
+            if movimentation.value > movimentation.from_account.limit:
+                return Response({"detail":f"{movimentation.type_movimentation} não aprovado!"}, status=status.HTTP_400_BAD_REQUEST)
+            
+           
+            movimentation.from_account.limit -= movimentation.value
+            movimentation.to_account.limit += movimentation.value
+            movimentation.state = "Transferência enviada!"
+
+            movimentation_sender =Movimentation(
+
+                type_movimentation = "Pix",
+                state = "Transferência recebida!",
+                value = Decimal(data["value"]),
+                from_account = movimentation.from_account,
+                to_account = movimentation.to_account
+            )
+            
+            print("passei")
+            movimentation.save()
+            movimentation.to_account.save()
+            movimentation.from_account.save()
+            movimentation_sender.save()
+
+            movimentation = {
+                "type_movimentation":movimentation.type_movimentation,
+                "state":movimentation.state,
+                "value":movimentation.value
+            }
+
+            return Response(data=movimentation, status=status.HTTP_201_CREATED)
+        elif movimentation.type_movimentation == "Pix cartão crédito":
+                movimentation.credit_card = CreditCard.objects.get(id=data["credit_card"])
+                movimentation.from_account = None
+                movimentation.to_account = Account.objects.get(id=data["to_account"])
+
+                if movimentation.value > movimentation.credit_card.limit:
+                    return Response({"Pix cartão de crédito":"Não foi aprovado, valor maior que o limite"})
+                
+                movimentation.credit_card.limit -= movimentation.value
+                movimentation.to_account.limit += movimentation.value
+                movimentation.state = "Pix cartão de crédito realizado com sucesso!"
+
+                movimentation.credit_card.save()
+                movimentation.to_account.save()
+
+                movimentation = {
+                "type_movimentation":movimentation.type_movimentation,
+                "state":movimentation.state,
+                "value":movimentation.value,
+                "to_account":movimentation.to_account.id
+                }
+                return Response(data=movimentation, status=status.HTTP_201_CREATED)
+
+        return Response({"nao sei":"teste"})
+
+
+                
+        
+           
+        
         
         
     

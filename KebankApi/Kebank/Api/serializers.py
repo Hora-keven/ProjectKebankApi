@@ -29,6 +29,9 @@ class MovimentationSerializer(serializers.ModelSerializer):
     class Meta:
       model = Movimentation
       fields = "__all__"
+      extra_kwargs = {
+          "date_hour":{"read_only":True}
+      }
 
   
     def get_date_hour(self, instance):
