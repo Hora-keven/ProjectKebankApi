@@ -1,9 +1,9 @@
 
 from rest_framework import viewsets, status
-from Kebank.Api.serializers import *
-from Kebank.models import *
+from . serializers import *
+from  Kebank.models import *
 from decimal import Decimal
-from Kebank.Api.number_rand import number_random
+from . import number_rand as rand
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -46,10 +46,10 @@ class AccountViewSet(viewsets.ModelViewSet):
       
         account = Account(
           agency = 5434,
-          number = number_random(100000000, 900000000),
-          number_verificate = number_random(1, 9),
+          number = rand.number_random(100000000, 900000000),
+          number_verificate = rand.number_random(1, 9),
           type_account=data["type_account"],
-          limit = number_random(300, 10000),
+          limit = rand.number_random(300, 10000),
         
         )
        
@@ -68,7 +68,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                
                 return Response(data=account_serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(data=account_serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail":"erro ao criar sua conta!"}, status=status.HTTP_400_BAD_REQUEST)
        
     
 class AddressViewSet(viewsets.ModelViewSet):
@@ -113,6 +113,7 @@ class LoanViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
+        
         loan = Loan(
         account =Account.objects.get(id=data["account"]),
         requested_amount = Decimal(data["requested_amount"]),
@@ -135,7 +136,8 @@ class LoanViewSet(viewsets.ModelViewSet):
         else:
             movimentation = Movimentation(
                 value = loan.requested_amount,
-                account = Account.objects.get(id=loan.account.id),
+                type_movimentation="Empréstimo",
+                from_account = Account.objects.get(id=loan.account.id),
                 state = "Empréstimo não aprovado!"
             )
             
@@ -146,7 +148,8 @@ class LoanViewSet(viewsets.ModelViewSet):
         loan.approved = True 
         movimentation = Movimentation(
                 value = loan.requested_amount,
-                account = Account.objects.get(id=loan.account.id),
+                type_movimentation="Empréstimo",
+                from_account = Account.objects.get(id=loan.account.id),
                 state = "Empréstimo realizado com sucesso!"
             )
         
@@ -169,28 +172,27 @@ class MovimentationViewSet(viewsets.ModelViewSet):
     queryset = Movimentation.objects.all()
     authentication_classes = [TokenAuthentication]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["state", "date_hour"]
+    filterset_fields = ["state", "date_hour", "credit_card"]
     permission_classes = [IsAuthenticated]
     throttle_classes = [ UserRateThrottle]
     
     def create(self, request, *args, **kwargs):
         data = request.data
 
-        movimentation = Movimentation(
-            type_movimentation = data["type_movimentation"],
-            value=Decimal(data["value"])
-           
-        )
-      
         
-        if movimentation.type_movimentation == "Pix":
+        movimentation = Movimentation( 
+            type_movimentation = data["type_movimentation"],
+            value=Decimal(data["value"]))
+        
+        
+        if movimentation.type_movimentation and movimentation.type_movimentation == "Pix":
             movimentation.credit_card = None
             movimentation.from_account = Account.objects.get(id=data["from_account"])
             movimentation.to_account = Account.objects.get(id=data["to_account"])
 
             
             if movimentation.value > movimentation.from_account.limit:
-                return Response({"detail":f"{movimentation.type_movimentation} não aprovado!"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail":f"{movimentation.type_movimentation} não aprovado! valor pedido é maior que o seu saldo"}, status=status.HTTP_400_BAD_REQUEST)
             
            
             movimentation.from_account.limit -= movimentation.value
@@ -206,7 +208,6 @@ class MovimentationViewSet(viewsets.ModelViewSet):
                 to_account = movimentation.to_account
             )
             
-            print("passei")
             movimentation.save()
             movimentation.to_account.save()
             movimentation.from_account.save()
@@ -215,10 +216,13 @@ class MovimentationViewSet(viewsets.ModelViewSet):
             movimentation = {
                 "type_movimentation":movimentation.type_movimentation,
                 "state":movimentation.state,
-                "value":movimentation.value
+                "value":movimentation.value,
+                "to_account":movimentation.to_account.id,
+                "from_account":movimentation.from_account.id
             }
 
             return Response(data=movimentation, status=status.HTTP_201_CREATED)
+        
         elif movimentation.type_movimentation == "Pix cartão crédito":
                 movimentation.credit_card = CreditCard.objects.get(id=data["credit_card"])
                 movimentation.from_account = None
@@ -231,76 +235,27 @@ class MovimentationViewSet(viewsets.ModelViewSet):
                 movimentation.to_account.limit += movimentation.value
                 movimentation.state = "Pix cartão de crédito realizado com sucesso!"
 
+              
                 movimentation.credit_card.save()
                 movimentation.to_account.save()
-
+                movimentation.save()
+                    
                 movimentation = {
                 "type_movimentation":movimentation.type_movimentation,
                 "state":movimentation.state,
                 "value":movimentation.value,
-                "to_account":movimentation.to_account.id
-                }
-                return Response(data=movimentation, status=status.HTTP_201_CREATED)
-
-        return Response({"nao sei":"teste"})
-
-
+                "credit_card":movimentation.credit_card
+             
+            }
                 
-        
-           
-        
-        
-        
-    
-class PixViewSet(viewsets.ModelViewSet):
-    serializer_class = PixSerializer
-    queryset = Pix.objects.all()
-    authentication_classes = [TokenAuthentication]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["from_account", "to_account"]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
+              
+                return Response(data=movimentation, status=status.HTTP_201_CREATED)
+            
+            
+        return Response({"Erro!":"Tipo de movimentação errada!"})
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-      
-        pix = Pix(
-        from_account = Account.objects.get(id=data["from_account"]),
-        value = Decimal(data["value"]),
-        to_account = Account.objects.get(id=data["to_account"])
-        )
-      
-        if pix.value > pix.from_account.limit:
-            return Response({"detail":"valor solicitado é maior que o seu limite"}, status=status.HTTP_404_NOT_FOUND)
-            
-        else:
-            pix.from_account.limit -= pix.value
-            pix.to_account.limit += pix.value
-            
-         
-        movimetation_from = Movimentation(
-          value = (-pix.value),
-          account = Account.objects.get(id = pix.from_account.id),
-          state = "Transferência enviada"
-        )
-        movimetation_to= Movimentation(
-          value = pix.value,
-          account = Account.objects.get(id = pix.to_account.id),
-          state = "Transferencia recebida"
-        )
-        
-        pix_serializer = PixSerializer(data=data)
-        
-        if pix_serializer.is_valid():
-            movimetation_from.save()
-            movimetation_to.save()
-            pix.from_account.save()
-            pix.to_account.save()
-            pix.save()
-            
-            return Response(data=pix_serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+
     
    
 class InvestmentViewSet(viewsets.ModelViewSet):
@@ -325,27 +280,29 @@ class InvestmentViewSet(viewsets.ModelViewSet):
         )
         
         if investment.account.limit < investment.contribuition:
-            movimetation = Movimentation(
+            movimentation = Movimentation(
                 value = (-investment.contribuition),
-                account = investment.account,
+                from_account = investment.account,
+                type_movimentation="Empréstimo",
                 state = "Investimento não aprovado"
                 )
-            movimetation.save()
+            movimentation.save()
             return Response({"detail":"valor solicitado é maior que o seu limite!"}, status=status.HTTP_400_BAD_REQUEST)
 
      
         investment.account.limit -= investment.contribuition
         invest_serializer = InvestmentSerializer(data=data)
 
-        movimetation = Movimentation(
+        movimentation = Movimentation(
           value = (-investment.contribuition),
-          account = investment.account,
+          from_account = investment.account,
+          type_movimentation="Empréstimo",
           state = "Investimento realizado com sucesso!"
         )
         
         if invest_serializer.is_valid():
             investment.save()
-            movimetation.save()
+            movimentation.save()
             investment.account.save()
             
             return Response(data=invest_serializer.data)
@@ -362,14 +319,14 @@ class CreditCardViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        number = number_random(a=100000000000, b=1000000000000)
+        number = rand.number_random(a=100000000000, b=1000000000000)
 
         credit_card = CreditCard(
             account=Account.objects.get(id=data["account"]),
             flag_card = "Visa",
             number = str(number)+"2304",
             validity = date_future_timezone,
-            cvv = number_random(a=100, b=900),
+            cvv = rand.number_random(a=100, b=900),
 
         )
         if credit_card.account.limit >= 1000:
@@ -389,82 +346,6 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_201_CREATED)
         
         return super().create(request, *args, **kwargs)
-class PixViewSet(viewsets.ModelViewSet):
-    serializer_class = PixSerializer
-    queryset = Pix.objects.all()
-    authentication_classes = [TokenAuthentication]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["from_account", "to_account"]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
+    
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-      
-        pix = Pix(
-        from_account = Account.objects.get(id=data["from_account"]),
-        value = Decimal(data["value"]),
-        to_account = Account.objects.get(id=data["to_account"])
-        )
-      
-        if pix.value > pix.from_account.limit:
-            return Response({"detail":"valor solicitado é maior que o seu limite"}, status=status.HTTP_404_NOT_FOUND)
-            
-        else:
-            pix.from_account.limit -= pix.value
-            pix.to_account.limit += pix.value
-            
-         
-        movimetation_from = Movimentation(
-          value = (-pix.value),
-          account = Account.objects.get(id = pix.from_account.id),
-          state = "Transferência enviada"
-        )
-        movimetation_to= Movimentation(
-          value = pix.value,
-          account = Account.objects.get(id = pix.to_account.id),
-          state = "Transferencia recebida"
-        )
-        
-        pix_serializer = PixSerializer(data=data)
-        
-        if pix_serializer.is_valid():
-            movimetation_from.save()
-            movimetation_to.save()
-            pix.from_account.save()
-            pix.to_account.save()
-            pix.save()
-            
-            return Response(data=pix_serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-    
-class PixCreditCardViewSet(viewsets.ModelViewSet):
-    serializer_class = PixCreditCardSerializer
-    queryset = PixCreditCard.objects.all()
-    authentication_classes = [TokenAuthentication]
-    filter_backends = [DjangoFilterBackend]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
-    
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        
-        pix_credit_card = PixCreditCard(
-            credit_card=CreditCard.objects.get(id=data["credit_card"]),
-            value = Decimal(data["value"]),
-            observation = data["observation"]
-        
-            )
-        pix_credit_card_serializer = PixCreditCardSerializer(data=data)
-        if pix_credit_card:
-            if pix_credit_card.value >=  pix_credit_card.credit_card.limit:
-                return Response({"detail":"pix com cartao de credito não aprovado"}) 
-        
-            pix_credit_card.credit_card.limit -= pix_credit_card.value
-            if pix_credit_card_serializer.is_valid():
-                pix_credit_card.save()
-                pix_credit_card.credit_card.save()
-                
-            return Response(data=pix_credit_card_serializer.data, status=status.HTTP_201_CREATED)
             

@@ -1,9 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
+from django.dispatch import receiver
+from Kebank.Api import number_rand
+from django.db.models.signals import post_save
+from django.db.models.signals import post_migrate
 
 class UserManager(BaseUserManager):
-    def create_user(self,first_name, surname, cpf_cnpj,  email, image=None,  password=None):
+    def create_user(self,first_name, cpf_cnpj,  email, image=None,surname=None,  password=None):
         if not email:
             raise ValueError("Put an email address")
         if not cpf_cnpj:
@@ -173,26 +177,7 @@ class Investment(models.Model):
     
     def save(self, *args, **kwargs):
         super(Investment, self).save(*args, **kwargs)
-        
-class LoanInstallment(models.Model):
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
-    due_date = models.CharField(max_length=10, blank=False)
-    installment_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
-    payment_date = models.DateField(auto_now_add=True)
-    
-    def save(self, *args, **kwargs):
-        super(LoanInstallment, self).save(*args, **kwargs)
 
-class Pix(models.Model):
-    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="from_account")
-    value = models.DecimalField(max_digits=10, decimal_places=2)
-    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="to_account")
- 
-        
-    def save(self, *args, **kwargs):
-        super(Pix, self).save(*args, **kwargs)
-
-    
 
 class CreditCard(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, null=False, unique=True, related_name="account_card_credit")
@@ -202,14 +187,6 @@ class CreditCard(models.Model):
     cvv = models.IntegerField( blank=True)
     limit = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
     
-class PixCreditCard(models.Model):
-    credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name="from_account")
-    value = models.DecimalField(max_digits=10, decimal_places=2)
-    observation = models.CharField(max_length=100)
- 
-        
-    def save(self, *args, **kwargs):
-        super(Pix, self).save(*args, **kwargs)
         
 class Movimentation(models.Model):
   
@@ -218,6 +195,7 @@ class Movimentation(models.Model):
         ("Pix", "Pix"),
         ("Pix cartão de crédito", "Pix cartão crédito"),
         ("Empréstimo", "Empréstimo")
+        
     ]
     
     date_hour = models.DateTimeField(auto_now_add=True)
@@ -230,6 +208,20 @@ class Movimentation(models.Model):
     
     def save(self, *args, **kwargs):
         super(Movimentation, self).save(*args, **kwargs)
+        
+    
+@receiver(post_save, sender=Account)
+def create_card(created, sender, instance, **kwargs):
+    if created:
+        card = Card.objects.create(
+            account = instance,
+            flag_card= 'Mastercard',
+            number= str(number_rand.number_random(a=100000000000, b=1000000000000))+"0810",
+            validity= number_rand.date_time(),
+            cvv= number_rand.number_random(100, 900),  
+        )
+        card.save()
+    print("aaaa")
         
 
         

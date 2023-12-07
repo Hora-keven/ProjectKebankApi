@@ -11,9 +11,6 @@ urlpatterns = [
     path("card/", CardViewSet.as_view({"post":"create", "get":"list"})),
     path("loan/", LoanViewSet.as_view({"post":"create", "get":"list"})),
     path("card/<int:pk>", CardViewSet.as_view({"delete":"destroy", "get":"list"})),
-  
-    path("pix/", PixViewSet.as_view({"post":"create", "get":"list"})),
-    path("pix/<int:pk>", PixViewSet.as_view({"post":"create", "get":"list"})),
     path("investment/", InvestmentViewSet.as_view({"post":"create", "get":"list"})),
     path("creditcard/", CreditCardViewSet.as_view({"get":"list", "post":"create"})),
     path("users/", UserViewSet.as_view({"get":"list", "post":"create"})),
