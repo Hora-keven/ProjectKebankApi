@@ -4,7 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.dispatch import receiver
 from Kebank.Api import number_rand
 from django.db.models.signals import post_save
-from django.db.models.signals import post_migrate
+
 
 class UserManager(BaseUserManager):
     def create_user(self,first_name, cpf_cnpj,  email, image=None,surname=None,  password=None):
@@ -221,7 +221,7 @@ def create_card(created, sender, instance, **kwargs):
             cvv= number_rand.number_random(100, 900),  
         )
         card.save()
-    print("aaaa")
+    
         
 
         

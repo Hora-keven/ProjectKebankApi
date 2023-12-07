@@ -37,16 +37,6 @@ class CardSerializer(serializers.ModelSerializer):
   class Meta:
     model = Card
     fields = "__all__"
-  
-  def to_internal_value(self, data):
-      
-        return {
-            'account': Account.objects.get(id=data['account']),
-            'flag_card': 'Mastercard',
-            'number': str(number_random(a=100000000000, b=1000000000000))+"0810",
-            'validity': date_future_timezone.date(),
-            'cvv': number_random(100, 900),  
-        }
 
   def create(self, validated_data):
         return Card.objects.create(**validated_data)
@@ -92,12 +82,8 @@ class AccountSerializer(serializers.ModelSerializer):
       
         return to_account_physical_person
         
-        
-
 class PhysicalPersonSerializer(serializers.ModelSerializer):
-   
     user = serializers.SerializerMethodField()
-  
     class Meta:
         model = PhysicalPerson
         fields = [  "cpf", "rg","born_date", "user", "fk_user"]
@@ -107,8 +93,6 @@ class PhysicalPersonSerializer(serializers.ModelSerializer):
         return {'id': user.id, 'first_name': user.first_name}
 
 class JuridicPersonSerializer(serializers.ModelSerializer):
-
-  
   class Meta:
         model = JuridicPerson
         fields = "__all__"

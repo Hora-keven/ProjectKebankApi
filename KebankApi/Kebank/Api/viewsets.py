@@ -9,37 +9,34 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication, BasicAuthentication
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework.throttling import UserRateThrottle
 
 class UserViewSet(DjoserUserViewSet):
     authentication_classes = [TokenAuthentication, BasicAuthentication]
     permission_classes = [IsAuthenticated, AllowAny] 
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
 
 class PhysicalPersonViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalPersonSerializer
     queryset = PhysicalPerson.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+  
     filter_backends = [DjangoFilterBackend]
     filterset_fields = [ "cpf"]
-    throttle_classes = [ UserRateThrottle]
+   
   
 class JuridicPersonViewSet(viewsets.ModelViewSet):
     serializer_class = JuridicPersonSerializer
     queryset = JuridicPerson.objects.all()
-    authentication_classes = [TokenAuthentication]
+   
     permission_classes = [IsAuthenticated]
     throttle_classes = [ UserRateThrottle]
     
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
     queryset = Account.objects.all()
-    authentication_classes = [TokenAuthentication]
+ 
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["id", "physical_person", "juridic_person"]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
+  
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -75,17 +72,15 @@ class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerialzer
     queryset = Address.objects.all()
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
+  
     throttle_classes = [ UserRateThrottle]
     
 class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
     queryset=Card.objects.all()
-    authentication_classes = [TokenAuthentication]
+   
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["account"]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
 
 
     def create(self, request, *args, **kwargs):
@@ -107,9 +102,6 @@ class CardViewSet(viewsets.ModelViewSet):
 class LoanViewSet(viewsets.ModelViewSet):
     serializer_class = LoanSerializer
     queryset = Loan.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -170,11 +162,10 @@ class LoanViewSet(viewsets.ModelViewSet):
 class MovimentationViewSet(viewsets.ModelViewSet):
     serializer_class = MovimentationSerializer
     queryset = Movimentation.objects.all()
-    authentication_classes = [TokenAuthentication]
+   
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["state", "date_hour", "credit_card"]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
+
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -261,9 +252,7 @@ class MovimentationViewSet(viewsets.ModelViewSet):
 class InvestmentViewSet(viewsets.ModelViewSet):
     serializer_class = InvestmentSerializer
     queryset = Investment.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
+
     
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -311,11 +300,9 @@ class InvestmentViewSet(viewsets.ModelViewSet):
 class CreditCardViewSet(viewsets.ModelViewSet):
     serializer_class = CreditCardSerializer
     queryset = CreditCard.objects.all()
-    authentication_classes = [TokenAuthentication]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["account"]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ UserRateThrottle]
+   
 
     def create(self, request, *args, **kwargs):
         data = request.data
