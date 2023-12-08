@@ -51,13 +51,13 @@ class AccountViewSet(viewsets.ModelViewSet):
         )
        
         
-        if account.physical_person:
+        if data["physical_person"] and data["physical_person"] != None:
+            
+            account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
+        else:
             account.juridic_person = JuridicPerson.objects.get(cnpj=data["juridic_person"])
         
-        else:
-            account.physical_person = PhysicalPerson.objects.get(cpf=data["physical_person"])
            
-            
         account_serializer = self.serializer_class(data=data) 
         
         if account_serializer.is_valid():
@@ -83,20 +83,20 @@ class CardViewSet(viewsets.ModelViewSet):
     filterset_fields = ["account"]
 
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        print(data["account"])
+    # def create(self, request, *args, **kwargs):
+    #     data = request.data
+    #     print(data["account"])
        
-        card_serializer = CardSerializer(data=data)
+    #     card_serializer = CardSerializer(data=data)
       
-        print(card_serializer.is_valid())
+    #     print(card_serializer.is_valid())
 
-        if card_serializer.is_valid():
+    #     if card_serializer.is_valid():
           
-            card_serializer.save()
+    #         card_serializer.save()
            
 
-        return Response(data=card_serializer.data,status=status.HTTP_201_CREATED)
+    #     return Response(data=card_serializer.data,status=status.HTTP_201_CREATED)
     
 
 class LoanViewSet(viewsets.ModelViewSet):

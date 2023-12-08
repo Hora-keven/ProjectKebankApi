@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-jp5ay0n(ovshx6^o@5qmh!asn*hex+fhpl7m!2$$_9s_hn*pyx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["10.109.71.20", "192.168.0.106", "10.234.88.186", "10.234.93.228", "10.21.165.72", "127.0.0.1", "192.168.56.1", "10.234.95.113", "192.168.43.1"]
+ALLOWED_HOSTS = ["10.109.71.20", "192.168.88.141", "10.21.61.69", "192.168.0.106", "10.234.88.186", "10.234.93.228", "10.21.165.72", "127.0.0.1", "192.168.56.1", "10.234.95.113", "192.168.43.1"]
 
 APPEND_SLASH = False
 
@@ -56,7 +56,6 @@ DJOSER = {
     'PERMISSIONS': {
         'user_list': [ "rest_framework.permissions.AllowAny"],
         'user': [ "rest_framework.permissions.AllowAny"],
-     
     },
     'AUTHENTICATION_CLASSES': [
           'rest_framework.authentication.TokenAuthentication',
@@ -87,7 +86,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '3/minutes',
-        'user': '20/minutes'
+        'user': '100/minutes'
     }
    
 }
@@ -111,10 +110,11 @@ CORS_ALLOWED_ORIGINS = [
    
   
 ]
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+
 
 ROOT_URLCONF = 'KebankApi.urls'
+
 
 AUTH_USER_MODEL = 'Kebank.User'
 TEMPLATES = [
