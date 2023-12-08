@@ -189,7 +189,7 @@ class MovimentationViewSet(viewsets.ModelViewSet):
             movimentation.from_account.limit -= movimentation.value
             movimentation.to_account.limit += movimentation.value
             movimentation.state = "Transferência enviada!"
-
+            movimentation.value = Decimal(-data["value"])
             movimentation_sender =Movimentation(
 
                 type_movimentation = "Pix",
